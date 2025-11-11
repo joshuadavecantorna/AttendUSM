@@ -334,6 +334,73 @@
                     </div>
                 </div>
 
+                <!-- NFC Scanning Dialog Box -->
+                <div id="nfc-scan-dialog" style="display: none; background: white; border: 2px solid var(--primary); border-radius: 12px; padding: 1.5rem; margin-top: 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
+                            </svg>
+                            NFC Scanner
+                        </h3>
+                        <button id="close-nfc-dialog" style="background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 1.5rem; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;">
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div id="nfc-status-container" style="text-align: center; padding: 2rem 1rem;">
+                        <!-- Scanning Animation -->
+                        <div id="nfc-scanning-animation" style="display: none;">
+                            <svg style="width: 80px; height: 80px; margin: 0 auto; animation: pulse 2s infinite;" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
+                            </svg>
+                            <div style="font-size: 1.1rem; font-weight: 600; margin-top: 1rem; color: var(--primary);">Scanning NFC...</div>
+                            <div style="font-size: 0.9rem; margin-top: 0.5rem; color: var(--text-light);">Tap your NFC card on the device</div>
+                        </div>
+                        
+                        <!-- Success Message -->
+                        <div id="nfc-success-message" style="display: none;">
+                            <svg style="width: 80px; height: 80px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="9 12 11 14 15 10"></polyline>
+                            </svg>
+                            <div id="nfc-success-name" style="font-size: 1.2rem; font-weight: 600; margin-top: 1rem; color: var(--text);"></div>
+                            <div id="nfc-success-status" style="font-size: 1rem; margin-top: 0.5rem; color: var(--success);"></div>
+                        </div>
+                        
+                        <!-- Error Message -->
+                        <div id="nfc-error-message" style="display: none;">
+                            <svg style="width: 80px; height: 80px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            <div id="nfc-error-text" style="font-size: 1.1rem; font-weight: 600; margin-top: 1rem; color: var(--danger);"></div>
+                        </div>
+                        
+                        <!-- Warning Message -->
+                        <div id="nfc-warning-message" style="display: none;">
+                            <svg style="width: 80px; height: 80px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <div id="nfc-warning-name" style="font-size: 1.2rem; font-weight: 600; margin-top: 1rem; color: var(--text);"></div>
+                            <div id="nfc-warning-text" style="font-size: 1rem; margin-top: 0.5rem; color: var(--warning);"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div style="font-size: 0.85rem; color: var(--text-light);">
+                            <span id="nfc-scan-count">0</span> scan(s) completed
+                        </div>
+                    </div>
+                </div>
+
                 <div id="attendance-success-msg" style="display: none; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 1rem; margin-top: 1rem; color: var(--success); text-align: center;">
                     <svg style="width: 24px; height: 24px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>

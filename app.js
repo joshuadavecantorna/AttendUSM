@@ -362,10 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!studentData) {
             // NFC tag not registered - prompt for QR registration
             pendingNFCRegistration = nfcId;
-            showScanErrorAnimation('NFC tag not registered. Opening QR scanner to register...');
+            showNfcError('NFC tag not registered. Opening QR scanner to register...');
             
             // Automatically open QR scanner for registration
             setTimeout(() => {
+                closeNfcDialog(); // Close NFC dialog first
                 if (!qrScanningActive) {
                     qrScanningActive = true;
                     scanQrBtn.classList.add('scanning-active');
@@ -377,13 +378,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     startQrScanner();
                 }
-            }, 2000); // Wait 2 seconds for user to read the message
+            }, 3000); // Wait 3 seconds for user to read the message
             return;
         }
         
         // NFC tag is registered - check if session is active
         if (!currentSessionId) {
-            showScanWarningAnimation(studentData.name, 'NFC tag registered. Please start a session to mark attendance.');
+            showNfcWarning(studentData.name, 'NFC tag registered. Please start a session to mark attendance.');
             return;
         }
         
@@ -393,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check if already scanned in this session
         const existingRecord = attendanceDataForCurrentSession.find(rec => rec.id === studentId);
         if (existingRecord) {
-            showScanWarningAnimation(studentData.name, `Already marked as ${existingRecord.status} for this session`);
+            showNfcWarning(studentData.name, `Already marked as ${existingRecord.status} for this session`);
             return;
         }
         
@@ -446,39 +447,107 @@ document.addEventListener('DOMContentLoaded', () => {
         saveStudentsDB();
         refreshStudentListUI();
         updateExportSubjectOptions();
-        showScanSuccessAnimation(student.name, determinedStatus);
+        showNfcSuccess(student.name, determinedStatus);
+    }
+
+    // NFC Dialog Box Management
+    let nfcReader = null;
+    let nfcScanCount = 0;
+    let isNfcScanning = false;
+
+    function openNfcDialog() {
+        const dialog = document.getElementById('nfc-scan-dialog');
+        dialog.style.display = 'block';
+        nfcScanCount = 0;
+        updateNfcScanCount();
+        showNfcScanning();
+    }
+
+    function closeNfcDialog() {
+        const dialog = document.getElementById('nfc-scan-dialog');
+        dialog.style.display = 'none';
+        stopNfcScan();
+    }
+
+    function updateNfcScanCount() {
+        const countElement = document.getElementById('nfc-scan-count');
+        if (countElement) {
+            countElement.textContent = nfcScanCount;
+        }
+    }
+
+    function hideAllNfcMessages() {
+        document.getElementById('nfc-scanning-animation').style.display = 'none';
+        document.getElementById('nfc-success-message').style.display = 'none';
+        document.getElementById('nfc-error-message').style.display = 'none';
+        document.getElementById('nfc-warning-message').style.display = 'none';
+    }
+
+    function showNfcScanning() {
+        hideAllNfcMessages();
+        document.getElementById('nfc-scanning-animation').style.display = 'block';
+    }
+
+    function showNfcSuccess(name, status) {
+        hideAllNfcMessages();
+        document.getElementById('nfc-success-name').textContent = name;
+        document.getElementById('nfc-success-status').textContent = status;
+        document.getElementById('nfc-success-message').style.display = 'block';
+        
+        // Return to scanning after 2 seconds
+        setTimeout(() => {
+            if (isNfcScanning) {
+                showNfcScanning();
+            }
+        }, 2000);
+    }
+
+    function showNfcError(message) {
+        hideAllNfcMessages();
+        document.getElementById('nfc-error-text').textContent = message;
+        document.getElementById('nfc-error-message').style.display = 'block';
+        
+        // Return to scanning after 3 seconds
+        setTimeout(() => {
+            if (isNfcScanning) {
+                showNfcScanning();
+            }
+        }, 3000);
+    }
+
+    function showNfcWarning(name, message) {
+        hideAllNfcMessages();
+        document.getElementById('nfc-warning-name').textContent = name;
+        document.getElementById('nfc-warning-text').textContent = message;
+        document.getElementById('nfc-warning-message').style.display = 'block';
+        
+        // Return to scanning after 2.5 seconds
+        setTimeout(() => {
+            if (isNfcScanning) {
+                showNfcScanning();
+            }
+        }, 2500);
     }
 
     function startNfcScan() {
         if (!('NDEFReader' in window)) {
-            showScanErrorAnimation('NFC not supported on this device.');
+            showPermissionModal('NFC not supported on this device. Please use a device with NFC capability.', 'error');
             return;
         }
 
-        // Show scanning animation
-        scanNfcBtn.classList.add('scanning-active');
-        scanNfcBtn.innerHTML = `
-            <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom; animation: pulse 2s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-            </svg>
-            Scanning NFC...
-        `;
-        
-        // Show visual feedback
-        showScanSuccessAnimation('NFC Scanner', 'Ready - Tap your NFC card');
+        // Open the NFC dialog
+        openNfcDialog();
+        isNfcScanning = true;
 
-        const ndef = new NDEFReader();
-        ndef.scan().then(() => {
+        nfcReader = new NDEFReader();
+        nfcReader.scan().then(() => {
             console.log('NFC scan started successfully');
             
-            ndef.onreadingerror = () => {
-                showScanErrorAnimation('NFC read error. Please try again.');
-                resetNfcButton();
+            nfcReader.onreadingerror = () => {
+                showNfcError('NFC read error. Please try again.');
             };
             
-            ndef.onreading = event => {
+            nfcReader.onreading = event => {
                 let nfcId = '';
                 
                 // Try to get NFC tag ID
@@ -492,30 +561,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('NFC tag detected:', nfcId);
                 
                 if (nfcId) {
-                    ndef.onreading = null;
-                    resetNfcButton();
+                    nfcScanCount++;
+                    updateNfcScanCount();
                     processNFCScan(nfcId);
                 } else {
-                    showScanErrorAnimation('Could not read NFC tag ID.');
-                    resetNfcButton();
+                    showNfcError('Could not read NFC tag ID.');
                 }
             };
         }).catch(error => {
             console.error('NFC scan error:', error);
-            showScanErrorAnimation('NFC error: ' + error.message);
-            resetNfcButton();
+            showNfcError('NFC error: ' + error.message);
+            isNfcScanning = false;
         });
     }
     
-    function resetNfcButton() {
-        scanNfcBtn.classList.remove('scanning-active');
-        scanNfcBtn.innerHTML = `
-            <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-            </svg>
-            Scan NFC Card
-        `;
+    function stopNfcScan() {
+        isNfcScanning = false;
+        if (nfcReader) {
+            nfcReader.onreading = null;
+            nfcReader.onreadingerror = null;
+            nfcReader = null;
+        }
+        console.log('NFC scanning stopped');
     }
 
     // --- Core ID Processing Logic ---
@@ -842,6 +909,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // NFC can be used without session for registration
         startNfcScan();
     });
+
+    // Close NFC dialog button
+    const closeNfcDialogBtn = document.getElementById('close-nfc-dialog');
+    if (closeNfcDialogBtn) {
+        closeNfcDialogBtn.addEventListener('click', () => {
+            closeNfcDialog();
+        });
+    }
 
     exportExcelBtn.addEventListener('click', () => {
         if (studentsDB.length === 0) {
