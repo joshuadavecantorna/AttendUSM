@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>USM Attendance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Color Scheme */
+        :root {
+            --primary: #4361EE;       /* Vibrant blue */
+            --primary-dark: #3A56D4;  /* Darker blue */
+            --secondary: #7209B7;     /* Purple accent */
+            --success: #2ECC71;       /* Green */
+            --warning: #F39C12;       /* Orange */
+            --danger: #E74C3C;        /* Red */
+            --light: #F8F9FA;         /* Light gray */
+            --dark: #212529;          /* Dark gray */
+            --text: #333333;          /* Primary text */
+            --text-light: #6C757D;    /* Secondary text */
+            --border: #E0E0E0;        /* Border color */
+        }
+
+        /* Base Styles */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: #F5F7FF;
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Card/Layout Styles */
+        .container {
+            max-width: 480px;
+            background-color: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            color: var(--dark);
+            font-weight: 600;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+
+        /* Logo & Branding */
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo img {
+            width: 100px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .logo h3 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background-color: white;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .btn-block {
+            width: 100%;
+            display: block;
+        }
+
+        /* Button Group */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Utility Classes */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-3 {
+            margin-top: 1rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Status Indicators */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-present {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--success);
+        }
+
+        .status-late {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+
+        /* Student List */
+        .student-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s;
+        }
+
+        .student-item:hover {
+            background-color: var(--light);
+        }
+
+        .student-info {
+            flex: 1;
+        }
+
+        .student-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .student-program {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Scanner Elements */
+        .scanner-container {
+            position: relative;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #qr-video, #qr-canvas {
+            width: 100%;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Status Counters */
+        .status-counters {
+            display: flex;
+            justify-content: space-between;
+            background-color: var(--light);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .counter {
+            text-align: center;
+            flex: 1;
+        }
+
+        .counter-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .counter-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        /* Error Message */
+        .error-message {
+            color: var(--danger);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        /* Permission Modal */
+        #permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #permission-modal .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        #permission-modal .modal-header h3 {
+            margin-top: 0;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 576px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container fade-in">
+        <div class="logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/University_of_Southern_Mindanao_Seal.svg" alt="USM Logo">
+            <h3>University of Southern Mindanao</h3>
+            <p>Attendance Management System</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="auth-section">
+            <div class="card" id="login-form">
+                <h2 class="text-center">Sign In</h2>
+                <div class="form-group">
+                    <label for="login-username">Email Address</label>
+                    <input type="text" id="login-username" placeholder="your@email.com" required />
+                    <div id="login-error" class="error-message">Invalid email or password</div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="login-btn">Sign In</button>
+                <p class="text-center mt-3">
+                    Don't have an account? <a href="#" id="show-register" class="text-primary">Register</a>
+                </p>
+            </div>
+
+            <div class="card hidden" id="register-form">
+                <h2 class="text-center">Create Account</h2>
+                <div class="form-group">
+                    <label for="register-username">Email Address</label>
+                    <input type="text" id="register-username" placeholder="your@email.com" required />
+                    <div id="register-error" class="error-message">Email already exists</div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="register-btn">Register</button>
+                <p class="text-center mt-3">
+                    Already have an account? <a href="#" id="show-login" class="text-primary">Sign In</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Attendance Section (Hidden Initially) -->
+        <div id="attendance-section" class="hidden">
+            <!-- Session Settings -->
+            <div class="card" id="session-settings">
+                <h3>Start New Session</h3>
+                <div class="form-group">
+                    <label for="course">Course</label>
+                    <input type="text" id="course" placeholder="e.g., CS 101" required />
+                </div>
+                <div class="form-group">
+                    <label for="semester">Semester</label>
+                    <select id="semester" required>
+                        <option value="">Select semester</option>
+                        <option value="1st Sem Midterm">1st Sem Midterm</option>
+                        <option value="1st Sem Final">1st Sem Final</option>
+                        <option value="2nd Sem Midterm">2nd Sem Midterm</option>
+                        <option value="2nd Sem Final">2nd Sem Final</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="class-time">Class Time</label>
+                    <input type="time" id="class-time" required />
+                </div>
+                <button id="start-session-btn" class="btn btn-primary btn-block">Start Session</button>
+            </div>
+
+            <!-- Attendance Capture -->
+            <div class="card hidden" id="attendance-capture">
+                <h3 class="text-center">Mark Attendance</h3>
+                
+                <div class="status-counters">
+                    <div class="counter">
+                        <div class="counter-value" id="present-count">0</div>
+                        <div class="counter-label">Present</div>
+                    </div>
+                    <div class="counter">
+                        <div class="counter-value" id="late-count">0</div>
+                        <div class="counter-label">Late</div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="scan-nfc-btn" class="btn btn-secondary">
+                        <span class="icon">📶</span> NFC
+                    </button>
+                    <button id="scan-qr-btn" class="btn btn-secondary">
+                        <span class="icon">🔍</span> QR Code
+                    </button>
+                </div>
+
+                <div class="scanner-container hidden" id="qr-scanner">
+                    <video id="qr-video" playsinline></video>
+                    <canvas id="qr-canvas"></canvas>
+                    <div class="scanner-overlay">Point camera at QR code</div>
+                </div>
+            </div>
+
+            <!-- Attendance Display -->
+            <div class="card hidden" id="attendance-display">
+                <h3>Attendance Records</h3>
+                <ul class="student-list" id="student-list">
+                    <!-- Student items will be added here dynamically -->
+                </ul>
+                <button id="export-excel-btn" class="btn btn-outline btn-block mt-3">
+                    Export to Excel
+                </button>
+            </div>
+
+            <button id="logout-btn" class="btn btn-outline btn-block mt-3">Logout</button>
+        </div>
+    </div>
+
+    <!-- New Student Modal -->
+    <div class="modal" id="new-student-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Register New Student</h3>
+            </div>
+            <form id="new-student-form">
+                <input type="hidden" id="student-id" />
+                <div class="form-group">
+                    <label for="student-name">Full Name</label>
+                    <input type="text" id="student-name" placeholder="Juan Dela Cruz" required />
+                </div>
+                <div class="form-group">
+                    <label for="student-program">Program</label>
+                    <input type="text" id="student-program" placeholder="BS Computer Science" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="cancel-student-btn" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Permission Modal (will be created dynamically) -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const showLoginLink = document.getElementById('show-login');
+            const showRegisterLink = document.getElementById('show-register');
+            const authSection = document.getElementById('auth-section');
+            const attendanceSection = document.getElementById('attendance-section');
+            const sessionSettings = document.getElementById('session-settings');
+            const attendanceCapture = document.getElementById('attendance-capture');
+            const attendanceDisplay = document.getElementById('attendance-display');
+            const logoutBtn = document.getElementById('logout-btn');
+            const startSessionBtn = document.getElementById('start-session-btn');
+            const scanQrBtn = document.getElementById('scan-qr-btn');
+            const scanNfcBtn = document.getElementById('scan-nfc-btn');
+            const exportExcelBtn = document.getElementById('export-excel-btn');
+            const newStudentModal = document.getElementById('new-student-modal');
+            const newStudentForm = document.getElementById('new-student-form');
+            const cancelStudentBtn = document.getElementById('cancel-student-btn');
+            const qrVideo = document.getElementById('qr-video');
+            const qrCanvas = document.getElementById('qr-canvas');
+            const qrScannerContainer = document.getElementById('qr-scanner');
+            const qrCanvasContext = qrCanvas.getContext('2d');
+            const studentIdInput = document.getElementById('student-id');
+            const studentList = document.getElementById('student-list');
+            const presentCountDisplay = document.getElementById('present-count');
+            const lateCountDisplay = document.getElementById('late-count');
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const loginError = document.getElementById('login-error');
+            const registerError = document.getElementById('register-error');
+
+            // Initialize default admin account if none exists
+            if (!localStorage.getItem('user_admin@usm.edu.ph')) {
+                const hashedPassword = btoa(encodeURIComponent('admin123'));
+                localStorage.setItem('user_admin@usm.edu.ph', JSON.stringify({ 
+                    password: hashedPassword 
+                }));
+            }
+
+            // --- State Variables ---
+            let loggedInUser = localStorage.getItem('loggedInUser');
+            let studentsDB = [];
+            let currentCourse = null;
+            let currentSemester = null;
+            let classStartTime = null;
+            let currentClassTimeStr = null;
+            let currentSessionId = null;
+            let attendanceDataForCurrentSession = [];
+            let qrScanningActive = false;
+            let pendingStudentScan = null;
+
+            // --- Local Storage Helper Functions ---
+            function loadStudentsDB() {
+                try {
+                    if (!loggedInUser) return [];
+                    const stored = localStorage.getItem(`allStudents_${loggedInUser}`);
+                    const parsed = stored ? JSON.parse(stored) : [];
+                    return parsed.map(student => ({
+                        ...student,
+                        attendanceHistory: (student.attendanceHistory || []).map(record => {
+                            if (typeof record.isLate !== 'undefined') {
+                                return {
+                                    sessionId: record.sessionId,
+                                    status: record.isLate ? 'Late' : 'Present',
+                                    course: record.course,
+                                    semester: record.semester,
+                                    classTime: record.classTime,
+                                    timestamp: record.timestamp || new Date().toISOString()
+                                };
+                            }
+                            return record;
+                        })
+                    }));
+                } catch (e) {
+                    console.error("Error loading studentsDB:", e);
+                    return [];
+                }
+            }
+
+            function saveStudentsDB() {
+                try {
+                    if (!loggedInUser) return;
+                    localStorage.setItem(`allStudents_${loggedInUser}`, JSON.stringify(studentsDB));
+                } catch (e) {
+                    console.error("Error saving studentsDB:", e);
+                }
+            }
+
+            // --- UI State Management Functions ---
+            if (loggedInUser) {
+                studentsDB = loadStudentsDB();
+                showAttendanceSection();
+            } else {
+                showAuthSection();
+            }
+
+            function showAttendanceSection() {
+                authSection.classList.add('hidden');
+                attendanceSection.classList.remove('hidden');
+                sessionSettings.classList.remove('hidden');
+                attendanceCapture.classList.add('hidden');
+                attendanceDisplay.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+            }
+
+            function showAuthSection() {
+                authSection.classList.remove('hidden');
+                attendanceSection.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginError.style.display = 'none';
+                registerError.style.display = 'none';
+            }
+
+            function updateStatusCounters() {
+                const presentCount = attendanceDataForCurrentSession.filter(s => s.status === 'Present').length;
+                const lateCount = attendanceDataForCurrentSession.filter(s => s.status === 'Late').length;
+                presentCountDisplay.textContent = presentCount;
+                lateCountDisplay.textContent = lateCount;
+            }
+
+            function refreshStudentListUI() {
+                studentList.innerHTML = '';
+
+                if (attendanceDataForCurrentSession.length === 0) {
+                    studentList.innerHTML = '<li class="student-item">No attendance records yet</li>';
+                } else {
+                    attendanceDataForCurrentSession.sort((a, b) => a.name.localeCompare(b.name));
+
+                    attendanceDataForCurrentSession.forEach(sessionRecord => {
+                        const student = studentsDB.find(s => s.id === sessionRecord.id);
+                        if (student) {
+                            const li = document.createElement('li');
+                            li.className = 'student-item';
+                            li.innerHTML = `
+                                <div class="student-info">
+                                    <div class="student-name">${student.name}</div>
+                                    <div class="student-program">${student.program}</div>
+                                </div>
+                                <span class="status-badge status-${sessionRecord.status.toLowerCase()}">${sessionRecord.status}</span>
+                            `;
+                            studentList.appendChild(li);
+                        }
+                    });
+                }
+                updateStatusCounters();
+            }
+
+            // --- Authentication Functions ---
+            function handleLogin() {
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+                const userData = localStorage.getItem(`user_${username}`);
+
+                if (!userData) {
+                    loginError.style.display = 'block';
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                const hashedInput = btoa(encodeURIComponent(password));
+                
+                if (user.password !== hashedInput) {
+                    loginError.style.display = 'block';
+                    return;
+                }
+                
+                loggedInUser = username;
+                localStorage.setItem('loggedInUser', loggedInUser);
+                studentsDB = loadStudentsDB();
+                showAttendanceSection();
+                document.getElementById('login-form').reset();
+                loginError.style.display = 'none';
+            }
+
+            function handleRegister() {
+                const username = document.getElementById('register-username').value.trim();
+                const password = document.getElementById('register-password').value.trim();
+
+                if (!username || !password) {
+                    alert('Please enter both email and password.');
+                    return;
+                }
+
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+
+                if (localStorage.getItem(`user_${username}`)) {
+                    registerError.style.display = 'block';
+                    return;
+                }
+
+                const hashedPassword = btoa(encodeURIComponent(password));
+                localStorage.setItem(`user_${username}`, JSON.stringify({ password: hashedPassword }));
+                
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                registerForm.reset();
+                registerError.style.display = 'none';
+                alert('Registered successfully. Please log in.');
+            }
+
+            // --- QR Code Scanner Functions ---
+            function startQrScanner() {
+                qrVideo.style.display = 'block';
+                qrCanvas.style.display = 'block';
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(stream => {
+                        qrVideo.srcObject = stream;
+                        qrVideo.setAttribute('playsinline', true);
+                        qrVideo.play();
+                        requestAnimationFrame(tick);
+                    })
+                    .catch(err => {
+                        alert('Camera access error: ' + err.message);
+                        console.error('Camera error:', err);
+                        stopQrScanner();
+                    });
+            }
+
+            function tick() {
+                if (!qrScanningActive) return;
+
+                if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
+                    qrCanvas.height = qrVideo.videoHeight;
+                    qrCanvas.width = qrVideo.videoWidth;
+                    qrCanvasContext.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
+                    const imageData = qrCanvasContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+                    
+                    if (code) {
+                        const scannedId = code.data.trim();
+                        stopQrScanner();
+                        processScannedId(scannedId);
+                        return;
+                    }
+                }
+                requestAnimationFrame(tick);
+            }
+
+            function stopQrScanner() {
+                qrScanningActive = false;
+                qrVideo.pause();
+                if (qrVideo.srcObject) {
+                    qrVideo.srcObject.getTracks().forEach(track => track.stop());
+                }
+                qrVideo.srcObject = null;
+                qrVideo.style.display = 'none';
+                qrCanvas.style.display = 'none';
+                scanQrBtn.classList.remove('scanning-active');
+                scanQrBtn.classList.add('scan-success');
+                setTimeout(() => scanQrBtn.classList.remove('scan-success'), 1000);
+            }
+
+            // --- NFC Scanning Functionality ---
+            function startNfcScan() {
+                if (!('NDEFReader' in window)) {
+                    alert('NFC not supported on this device.');
+                    return;
+                }
+
+                const ndef = new NDEFReader();
+                ndef.scan().then(() => {
+                    scanNfcBtn.classList.add('scanning-active');
+                    alert('Ready to scan NFC tag');
+                    
+                    ndef.onreadingerror = () => {
+                        alert('NFC read error. Try again.');
+                        scanNfcBtn.classList.remove('scanning-active');
+                    };
+                    
+                    ndef.onreading = event => {
+                        let nfcId = '';
+                        if (event.serialNumber) {
+                            nfcId = event.serialNumber;
+                        } else if (event.message?.records?.length > 0) {
+                            for (const record of event.message.records) {
+                                if (record.recordType === 'text') {
+                                    try {
+                                        const textDecoder = new TextDecoder(record.encoding);
+                                        nfcId = textDecoder.decode(record.data);
+                                        break;
+                                    } catch (e) {
+                                        console.error('NFC decode error:', e);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (nfcId) {
+                            ndef.onreading = null;
+                            scanNfcBtn.classList.remove('scanning-active');
+                            scanNfcBtn.classList.add('scan-success');
+                            setTimeout(() => scanNfcBtn.classList.remove('scan-success'), 1000);
+                            processScannedId(nfcId.trim());
+                        } else {
+                            alert('No valid ID found on NFC tag.');
+                        }
+                    };
+                }).catch(error => {
+                    alert('NFC error: ' + error.message);
+                    scanNfcBtn.classList.remove('scanning-active');
+                });
+            }
+
+            
+
+            // --- Core ID Processing Logic ---
+            function processScannedId(id) {
+                if (!currentSessionId) {
+                    showPermissionModal('Session not started. Please set course, semester, and class time.', 'error');
+                    return;
+                }
+
+                // Check if already scanned in this session
+                const existingRecord = attendanceDataForCurrentSession.find(rec => rec.id === id);
+                if (existingRecord) {
+                    showPermissionModal(`${existingRecord.name} already marked as ${existingRecord.status} for this session.`, 'error');
+                    return;
+                }
+
+                const currentTime = new Date();
+                const lateThresholdMinutes = 15;
+                const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
+                const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
+
+                let student = studentsDB.find(s => s.id === id);
+
+                if (student) {
+                    // Update counts
+                    if (determinedStatus === 'Late') {
+                        student.lateCount = (student.lateCount || 0) + 1;
+                    } else {
+                        student.presentCount = (student.presentCount || 0) + 1;
+                    }
+
+                    // Add attendance record
+                    student.attendanceHistory.push({
+                        sessionId: currentSessionId,
+                        status: determinedStatus,
+                        course: currentCourse,
+                        semester: currentSemester,
+                        classTime: currentClassTimeStr,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Add to current session display
+                    attendanceDataForCurrentSession.push({
+                        id: student.id,
+                        name: student.name,
+                        program: student.program,
+                        status: determinedStatus
+                    });
+
+                    saveStudentsDB();
+                    refreshStudentListUI();
+                    showPermissionModal(`${student.name} marked as ${determinedStatus}`, 'info');
+                } else {
+                    // New student
+                    pendingStudentScan = {
+                        id: id,
+                        status: determinedStatus,
+                        course: currentCourse,
+                        semester: currentSemester,
+                        classTime: currentClassTimeStr,
+                        sessionId: currentSessionId
+                    };
+                    showNewStudentModal(id);
+                }
+            }
+
+            // --- New Student Modal Functions ---
+            function showNewStudentModal(id) {
+                newStudentModal.classList.add('active');
+                studentIdInput.value = id;
+                document.getElementById('student-name').value = '';
+                document.getElementById('student-program').value = '';
+            }
+
+            function hideNewStudentModal() {
+                newStudentModal.classList.remove('active');
+                pendingStudentScan = null;
+            }
+
+            // --- Event Listeners ---
+            showLoginLink.addEventListener('click', e => {
+                e.preventDefault();
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                registerError.style.display = 'none';
+            });
+
+            showRegisterLink.addEventListener('click', e => {
+                e.preventDefault();
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                loginError.style.display = 'none';
+            });
+
+            loginBtn.addEventListener('click', e => {
+                e.preventDefault();
+                handleLogin();
+            });
+
+            registerBtn.addEventListener('click', e => {
+                e.preventDefault();
+                handleRegister();
+            });
+
+            // Allow form submission with Enter key
+            document.getElementById('login-username').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+
+            document.getElementById('login-password').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('loggedInUser');
+                loggedInUser = null;
+                currentCourse = null;
+                currentSemester = null;
+                classStartTime = null;
+                currentClassTimeStr = null;
+                currentSessionId = null;
+                attendanceDataForCurrentSession = [];
+                showAuthSection();
+                stopQrScanner();
+            });
+
+            startSessionBtn.addEventListener('click', () => {
+                const courseInput = document.getElementById('course').value.trim();
+                const semesterInput = document.getElementById('semester').value;
+                const timeInput = document.getElementById('class-time').value;
+
+                if (!courseInput || !semesterInput || !timeInput) {
+                    showPermissionModal('Please fill all session details to start.', 'error');
+                    return;
+                }
+
+                currentCourse = courseInput;
+                currentSemester = semesterInput;
+                currentClassTimeStr = timeInput;
+
+                const now = new Date();
+                const [hours, minutes] = timeInput.split(':').map(Number);
+                classStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+                currentSessionId = `${currentCourse.replace(/\s/g, '_')}-${currentSemester.replace(/\s/g, '_')}-${now.toISOString().slice(0, 10)}-${timeInput.replace(':', '')}`;
+
+                attendanceDataForCurrentSession = [];
+                studentsDB.forEach(student => {
+                    const sessionRecord = student.attendanceHistory.find(
+                        record => record.sessionId === currentSessionId
+                    );
+                    if (sessionRecord) {
+                        attendanceDataForCurrentSession.push({
+                            id: student.id,
+                            name: student.name,
+                            program: student.program,
+                            status: sessionRecord.status
+                        });
+                    }
+                });
+
+                sessionSettings.classList.add('hidden');
+                attendanceCapture.classList.remove('hidden');
+                attendanceDisplay.classList.remove('hidden');
+                updateStatusCounters();
+                refreshStudentListUI();
+                showPermissionModal(`Session for ${currentCourse} (${currentSemester}) at ${currentClassTimeStr} started.`, 'info');
+            });
+
+            scanQrBtn.addEventListener('click', () => {
+                if (!currentSessionId) {
+                    alert('Please start a session first before scanning.');
+                    return;
+                }
+                if (qrScanningActive) {
+                    stopQrScanner();
+                    return;
+                }
+                qrScanningActive = true;
+                scanQrBtn.classList.add('scanning-active');
+                startQrScanner();
+            });
+
+            scanNfcBtn.addEventListener('click', () => {
+                if (!currentSessionId) {
+                    alert('Please start a session first before scanning NFC.');
+                    return;
+                }
+                startNfcScan();
+            });
+
+            exportExcelBtn.addEventListener('click', () => {
+                if (studentsDB.length === 0) {
+                    alert('No student data to export.');
+                    return;
+                }
+                
+                let csv = 'Student ID,Name,Program,Total Present,Total Late\n';
+                studentsDB.forEach(s => {
+                    const present = s.presentCount || 0;
+                    const late = s.lateCount || 0;
+                    csv += `"${s.id}","${s.name}","${s.program}",${present},${late}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `USM_Attendance_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            newStudentForm.addEventListener('submit', e => {
+                e.preventDefault();
+                const id = document.getElementById('student-id').value.trim();
+                const name = document.getElementById('student-name').value.trim();
+                const program = document.getElementById('student-program').value.trim();
+
+                if (!id || !name || !program) {
+                    alert('Please fill in all student details.');
+                    return;
+                }
+
+                if (studentsDB.some(s => s.id === id)) {
+                    alert('A student with this ID already exists.');
+                    return;
+                }
+
+                const newStudent = {
+                    id: id,
+                    name: name,
+                    program: program,
+                    presentCount: 0,
+                    lateCount: 0,
+                    attendanceHistory: []
+                };
+
+                if (pendingStudentScan && pendingStudentScan.id === id) {
+                    if (pendingStudentScan.status === 'Late') {
+                        newStudent.lateCount = 1;
+                    } else {
+                        newStudent.presentCount = 1;
+                    }
+
+                    newStudent.attendanceHistory.push({
+                        sessionId: pendingStudentScan.sessionId,
+                        status: pendingStudentScan.status,
+                        course: pendingStudentScan.course,
+                        semester: pendingStudentScan.semester,
+                        classTime: pendingStudentScan.classTime,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    attendanceDataForCurrentSession.push({
+                        id: newStudent.id,
+                        name: newStudent.name,
+                        program: newStudent.program,
+                        status: pendingStudentScan.status
+                    });
+                }
+
+                studentsDB.push(newStudent);
+                alert(`Student ${name} registered successfully!`);
+                hideNewStudentModal();
+                saveStudentsDB();
+                refreshStudentListUI();
+                newStudentForm.reset();
+            });
+
+            cancelStudentBtn.addEventListener('click', hideNewStudentModal);
+        });
+    </script>
+</body>
+</html>
