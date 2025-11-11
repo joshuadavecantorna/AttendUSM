@@ -384,13 +384,15 @@
                         
                         <!-- Warning Message -->
                         <div id="nfc-warning-message" style="display: none;">
-                            <svg style="width: 80px; height: 80px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            <div id="nfc-warning-name" style="font-size: 1.2rem; font-weight: 600; margin-top: 1rem; color: var(--text);"></div>
-                            <div id="nfc-warning-text" style="font-size: 1rem; margin-top: 0.5rem; color: var(--warning);"></div>
+                            <div style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); border-radius: 50%; width: 120px; height: 120px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(243, 156, 18, 0.2);">
+                                <svg style="width: 70px; height: 70px;" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5" stroke-linecap="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                            </div>
+                            <div id="nfc-warning-name" style="font-size: 1.3rem; font-weight: 700; margin-top: 0.5rem; color: var(--text); text-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                            <div id="nfc-warning-text" style="font-size: 1.05rem; margin-top: 0.75rem; color: var(--warning); font-weight: 600; padding: 0.75rem 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px; border-left: 4px solid var(--warning);"></div>
                         </div>
                     </div>
                     

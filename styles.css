@@ -968,6 +968,74 @@ input[type="search"]:hover::placeholder {
     animation: error-shake 0.5s ease-out;
 }
 
+#nfc-warning-message {
+    animation: warning-bounce 0.6s ease-out;
+}
+
 #nfc-warning-message svg {
-    animation: pulse 1s ease-in-out;
+    animation: warning-pulse 1.5s ease-in-out infinite;
+}
+
+#nfc-warning-name {
+    animation: warning-text-fade 0.5s ease-out;
+}
+
+#nfc-warning-text {
+    animation: warning-text-fade 0.5s ease-out 0.2s both;
+}
+
+@keyframes warning-bounce {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+    }
+    50% {
+        transform: scale(1.05) translateY(5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes warning-pulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 4px 8px rgba(243, 156, 18, 0.3));
+    }
+    25% {
+        transform: scale(1.08) rotate(5deg);
+    }
+    50% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 6px 16px rgba(243, 156, 18, 0.6));
+    }
+    75% {
+        transform: scale(1.08) rotate(-5deg);
+    }
+}
+
+@keyframes warning-text-fade {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Warning icon glow pulse */
+#nfc-warning-message > div:first-child {
+    animation: warning-glow 2s ease-in-out infinite;
+}
+
+@keyframes warning-glow {
+    0%, 100% {
+        box-shadow: 0 8px 20px rgba(243, 156, 18, 0.2);
+    }
+    50% {
+        box-shadow: 0 12px 30px rgba(243, 156, 18, 0.4), 0 0 40px rgba(243, 156, 18, 0.2);
+    }
 }
