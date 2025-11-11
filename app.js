@@ -362,7 +362,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!studentData) {
             // NFC tag not registered - prompt for QR registration
             pendingNFCRegistration = nfcId;
-            showScanErrorAnimation('NFC tag not registered. Please scan your QR code to register this NFC tag.');
+            showScanErrorAnimation('NFC tag not registered. Opening QR scanner to register...');
+            
+            // Automatically open QR scanner for registration
+            setTimeout(() => {
+                if (!qrScanningActive) {
+                    qrScanningActive = true;
+                    scanQrBtn.classList.add('scanning-active');
+                    scanQrBtn.innerHTML = `
+                        <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                        </svg>
+                        Stop Scanning
+                    `;
+                    startQrScanner();
+                }
+            }, 2000); // Wait 2 seconds for user to read the message
             return;
         }
         
