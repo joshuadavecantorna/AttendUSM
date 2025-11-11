@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>USM Attendance System</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container fade-in">
+        <div class="logo">
+            <img src="usm_logo_Aug-2024.png" alt="USM Logo">
+            <h3>University of Southern Mindanao</h3>
+            <p>Attendance Management System</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="auth-section">
+            <div class="card" id="login-form">
+                <div style="display:flex;gap:1rem;align-items:stretch;flex-wrap:wrap;">
+                    <div style="flex:1 1 160px;min-width:160px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:10px;padding:1.25rem;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                        <div style="font-weight:700;font-size:1.05rem;margin-bottom:0.25rem;">Welcome back</div>
+                        <div style="font-size:0.9rem;opacity:0.95;text-align:center;">Sign in to access the Attendance Dashboard</div>
+                        <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="white" opacity="0.1"/><path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="white" opacity="0.9"/><path d="M4 20c0-2.21 3.582-4 8-4s8 1.79 8 4v1H4v-1z" fill="white" opacity="0.9"/></svg>
+                        </div>
+                    </div>
+
+                    <div style="flex:2 1 260px;min-width:260px;"> 
+                        <h2 class="text-center" style="margin-top:0;margin-bottom:0.25rem;">Sign In</h2>
+                        <p class="text-center" style="margin-top:0;margin-bottom:1rem;color:var(--text-light)">Enter your email and password to continue</p>
+
+                        <div class="form-group" style="margin-bottom:1.25rem;">
+                            <label for="login-username" style="display:block;margin-bottom:0.5rem;color:var(--text);">Email address</label>
+                            <div style="position:relative;width:100%;">
+                                <input type="email" id="login-username" placeholder="Enter your email address" required aria-required="true" autocomplete="username" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);transition:all 0.2s ease;" />
+                            </div>
+                            <div id="login-error" class="error-message" style="margin-top:0.25rem;">Invalid email or password</div>
+                        </div>
+
+                        <div class="form-group" style="position:relative;">
+                            <label for="login-password">Password</label>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <input type="password" id="login-password" placeholder="Enter your password" required aria-required="true" autocomplete="current-password" style="flex:1;" />
+                                <button type="button" id="toggle-password" aria-label="Show password" class="btn btn-outline" style="padding:8px 10px;">Show</button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:0.25rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;font-weight:500;">
+                                <input type="checkbox" id="remember-me" /> <span style="font-size:0.95rem;color:var(--text-light)">Remember me</span>
+                            </label>
+                            <a href="#" id="forgot-password" style="color:var(--primary);font-weight:600;text-decoration:none;font-size:0.95rem;">Forgot?</a>
+                        </div>
+
+                        <div style="margin-top:1rem;">
+                            <button type="button" class="btn btn-primary btn-block" id="login-btn">Sign In</button>
+                        </div>
+
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;">
+                            <hr style="flex:1;border:none;border-top:1px solid var(--border);margin:0;" />
+                            <small style="color:var(--text-light);">Or</small>
+                            <hr style="flex:1;border:none;border-top:1px solid var(--border);margin:0;" />
+                        </div>
+
+                        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                            <button class="btn btn-outline" style="flex:1;" id="qr-login-btn">
+                                <svg style="width:20px;height:20px;margin-right:8px;vertical-align:text-bottom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3z"/><path d="M15 15h6v6h-6zM7 7h2v2H7zM19 7h2v2h-2zM7 19h2v2H7z"/></svg>
+                                Sign in with QR
+                            </button>
+                            <button class="btn btn-outline" style="flex:1;" id="nfc-login-btn">
+                                <svg style="width:20px;height:20px;margin-right:8px;vertical-align:text-bottom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+                                Sign in with NFC
+                            </button>
+                        </div>
+
+                        <!-- QR Scanner Modal -->
+                        <div id="qr-modal" class="modal">
+                            <div class="modal-content" style="max-width:500px;">
+                                <h3 style="margin-top:0;">Scan QR Code</h3>
+                                <div class="scanner-container" style="background:#000;border-radius:12px;overflow:hidden;">
+                                    <video id="qr-video" style="width:100%;display:block;"></video>
+                                    <canvas id="qr-canvas" style="display:none;"></canvas>
+                                    <div class="scanner-overlay" style="display:none;">
+                                        <div>Processing...</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top:1rem;display:flex;justify-content:flex-end;gap:0.5rem;">
+                                    <button class="btn btn-outline" id="close-qr-modal">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NFC Modal -->
+                        <div id="nfc-modal" class="modal">
+                            <div class="modal-content" style="max-width:400px;">
+                                <h3 style="margin-top:0;">Tap your NFC ID Card</h3>
+                                <div style="text-align:center;padding:2rem;">
+                                    <div id="nfc-animation" style="width:80px;height:80px;margin:0 auto 1rem;border:3px solid var(--primary);border-radius:50%;animation:pulse 2s infinite;">
+                                        <svg style="width:48px;height:48px;margin:13px;" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                                            <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                                        </svg>
+                                    </div>
+                                    <p id="nfc-status" style="margin:0;color:var(--text-light);">Waiting for NFC card...</p>
+                                </div>
+                                <div style="margin-top:1rem;display:flex;justify-content:flex-end;gap:0.5rem;">
+                                    <button class="btn btn-outline" id="close-nfc-modal">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-center mt-3" style="margin-bottom:0;margin-top:1rem;font-size:0.95rem;color:var(--text-light)">
+                            Don't have an account? <a href="#" id="show-register" class="text-primary" style="color:var(--primary);font-weight:600;text-decoration:none;">Register</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card hidden" id="register-form">
+                <h2 class="text-center">Create Account</h2>
+                <div class="form-group">
+                    <label for="register-username">Email Address</label>
+                    <input type="text" id="register-username" placeholder="Enter your email address" required />
+                    <div id="register-error" class="error-message">Email already exists</div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" placeholder="Create a password" required />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="register-btn">Register</button>
+                <p class="text-center mt-3">
+                    Already have an account? <a href="#" id="show-login" class="text-primary" style="color:var(--primary);font-weight:600;text-decoration:none;">Sign In</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Attendance Section (Hidden Initially) -->
+        <div id="attendance-section" class="hidden">
+            <!-- Dashboard Header -->
+            <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="margin: 0 0 0.25rem; color: white;">Attendance Dashboard</h2>
+                        <p id="current-session-info" style="margin: 0; opacity: 0.9; font-size: 0.9rem; color: white;">No active session</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                <button id="logout-btn" class="btn btn-outline" style="display:flex;align-items:center;gap:0.5rem;padding:10px 18px;">
+                    <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="card" style="text-align: center; padding: 1.25rem;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="present-count">0</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Present</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.25rem;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--danger);" id="late-count">0</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Late</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.25rem;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--text);" id="total-count">0</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Total</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.25rem;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--primary);" id="attendance-rate">0%</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Rate</div>
+                </div>
+            </div>
+
+            <!-- Session Settings -->
+            <div class="card session-config-card" id="session-settings">
+                <div class="session-header">
+                    <div class="session-header-content">
+                        <div class="session-icon-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.35rem;">Session Configuration</h3>
+                            <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-light);">Set up your attendance session details</p>
+                        </div>
+                    </div>
+                    <div class="session-time-display">
+                        <svg style="width: 18px; height: 18px; margin-right: 6px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span id="current-time" style="font-weight: 600; font-size: 0.95rem;"></span>
+                    </div>
+                </div>
+                
+                <div class="session-form-grid">
+                    <div class="form-group-modern">
+                        <label for="course" class="form-label-modern">
+                            <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            Course Code
+                        </label>
+                        <input type="text" id="course" class="input-modern" placeholder="Course code (e.g., CS 101)" required />
+                    </div>
+                    <div class="form-group-modern">
+                        <label for="semester" class="form-label-modern">
+                            <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Semester Period
+                        </label>
+                        <select id="semester" class="input-modern" required>
+                            <option value="">Select semester</option>
+                            <option value="1st Sem Midterm">1st Sem Midterm</option>
+                            <option value="1st Sem Final">1st Sem Final</option>
+                            <option value="2nd Sem Midterm">2nd Sem Midterm</option>
+                            <option value="2nd Sem Final">2nd Sem Final</option>
+                        </select>
+                    </div>
+                    <div class="form-group-modern">
+                        <label for="class-time" class="form-label-modern">
+                            <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Class Time
+                        </label>
+                        <input type="time" id="class-time" class="input-modern" required />
+                    </div>
+                </div>
+                <button id="start-session-btn" class="btn-start-session">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Start Attendance Session</span>
+                </button>
+            </div>
+
+            <!-- Attendance Capture -->
+            <div class="card hidden" id="attendance-capture">
+                <h3 style="margin-top: 0;">Mark Attendance</h3>
+                
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <button id="scan-qr-btn" class="btn btn-primary" style="flex: 1; min-width: 140px;">
+                        <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3z"/>
+                            <path d="M15 15h6v6h-6zM7 7h2v2H7zM19 7h2v2h-2zM7 19h2v2H7z"/>
+                        </svg>
+                        Scan QR Code
+                    </button>
+                    <button id="scan-nfc-btn" class="btn btn-secondary" style="flex: 1; min-width: 140px;">
+                        <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                            <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                        </svg>
+                        Scan NFC Card
+                    </button>
+                    <button id="manual-entry-btn" class="btn btn-outline" style="flex: 1; min-width: 140px;">
+                        <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Manual Entry
+                    </button>
+                </div>
+
+                <div class="scanner-container hidden" id="qr-scanner">
+                    <video id="qr-video-attendance" playsinline style="width: 100%; border-radius: 8px;"></video>
+                    <canvas id="qr-canvas-attendance" style="display: none;"></canvas>
+                    <div class="scanner-overlay">
+                        <div class="scanner-frame">
+                            <div class="scanner-corner scanner-corner-tl"></div>
+                            <div class="scanner-corner scanner-corner-tr"></div>
+                            <div class="scanner-corner scanner-corner-bl"></div>
+                            <div class="scanner-corner scanner-corner-br"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Success Check Animation Overlay -->
+                    <div id="scan-success-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; z-index: 10;">
+                        <div style="text-align: center; background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+                            <svg id="success-check-icon" style="width: 100px; height: 100px;" viewBox="0 0 24 24" fill="none" stroke="#2ECC71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="9 12 11 14 15 10"></polyline>
+                            </svg>
+                            <div id="success-student-name" style="font-size: 1.25rem; font-weight: 600; margin-top: 1rem; color: var(--text);"></div>
+                            <div id="success-status" style="font-size: 1rem; margin-top: 0.5rem; color: var(--success);"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Animation Overlay -->
+                    <div id="scan-error-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; z-index: 10;">
+                        <div style="text-align: center; background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+                            <svg id="error-icon" style="width: 100px; height: 100px;" viewBox="0 0 24 24" fill="none" stroke="#E74C3C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            <div id="error-message" style="font-size: 1.1rem; font-weight: 600; margin-top: 1rem; color: var(--danger);"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Warning/Duplicate Animation Overlay -->
+                    <div id="scan-warning-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; z-index: 10;">
+                        <div style="text-align: center; background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+                            <svg id="warning-icon" style="width: 100px; height: 100px;" viewBox="0 0 24 24" fill="none" stroke="#F39C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <div id="warning-student-name" style="font-size: 1.25rem; font-weight: 600; margin-top: 1rem; color: var(--text);"></div>
+                            <div id="warning-message" style="font-size: 1rem; margin-top: 0.5rem; color: var(--warning);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendance-success-msg" style="display: none; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 1rem; margin-top: 1rem; color: var(--success); text-align: center;">
+                    <svg style="width: 24px; height: 24px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span id="success-msg-text">Attendance marked successfully!</span>
+                </div>
+            </div>
+
+            <!-- Attendance Display -->
+            <div class="card hidden" id="attendance-display">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <h3 style="margin: 0;">Attendance Records</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="search-student" placeholder="Search by name or ID..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem; width: 200px;" />
+                        <button id="filter-btn" class="btn btn-outline" style="padding: 8px 12px;">
+                            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
+                    <ul class="student-list" id="student-list">
+                        <!-- Student items will be added here dynamically -->
+                    </ul>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <h4 style="margin-top: 0; margin-bottom: 1rem;">Export Options</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="export-subject-select" style="font-size: 0.9rem;">Select Data</label>
+                            <select id="export-subject-select">
+                                <option value="current">Current Session Only</option>
+                                <option value="all">All Sessions</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <button id="export-excel-btn" class="btn btn-primary">
+                            <svg style="width: 18px; height: 18px; margin-right: 6px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="login.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
