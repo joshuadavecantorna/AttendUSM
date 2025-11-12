@@ -9,6 +9,27 @@
 
     // Wait for IndexedDB to initialize
     let dbReady = false;
+    let tempClassStudents = [];
+    let editingClassId = null;
+
+    const classNameInput = document.getElementById('class-name-input');
+    const classStudentTempList = document.getElementById('class-student-temp-list');
+    const existingClassesList = document.getElementById('existing-classes-list');
+    const saveClassBtn = document.getElementById('save-class-btn');
+    const resetClassBtn = document.getElementById('reset-class-btn');
+    const openStudentSelectorBtn = document.getElementById('open-student-selector-btn');
+    const studentSelectorModal = document.getElementById('student-selector-modal');
+    const studentSearchInput = document.getElementById('student-search-input');
+    const studentSelectorList = document.getElementById('student-selector-list');
+    const selectAllStudentsCheckbox = document.getElementById('select-all-students');
+    const confirmStudentSelectorBtn = document.getElementById('confirm-student-selector');
+    const cancelStudentSelectorBtn = document.getElementById('cancel-student-selector');
+    const closeStudentSelectorBtn = document.getElementById('close-student-selector');
+    const selectedStudentsCount = document.getElementById('selected-students-count');
+    const modalSelectedCount = document.getElementById('modal-selected-count');
+    
+    let allStudentsForSelection = [];
+    let selectedStudentIds = new Set();
     attendanceDB.init().then(async () => {
         dbReady = true;
         console.log('IndexedDB initialized for admin panel');
@@ -23,51 +44,32 @@
                     const count = await attendanceDB.migrateFromLocalStorage();
                     showNotification(`Successfully migrated ${count} students to IndexedDB!`, 'success');
                     renderStudents();
+                    renderClasses();
                 } catch (error) {
                     showNotification('Migration failed: ' + error.message, 'error');
                 }
             }
         } else {
             renderStudents();
+            renderClasses();
         }
     }).catch(error => {
         console.error('Failed to initialize IndexedDB:', error);
         showNotification('Database initialization failed. Falling back to localStorage.', 'error');
     });
 
-    // Get all students from IndexedDB
-    async function getAllStudents() {
-        if (!dbReady) {
-            console.warn('Database not ready');
-            return [];
-        }
-        
-        try {
-            const students = await attendanceDB.getAllStudents();
-            // Add storageKey for compatibility
-            return students.map(student => ({
-                ...student,
-                storageKey: `allStudents_${student.owner}`
-            }));
-        } catch (error) {
-            console.error('Error getting students:', error);
-            return [];
-        }
-    }
+    function getStudentsFromLocalStorage() {
         const allStudents = [];
-        
-        // Get all keys from localStorage
+
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            
-            // Check if it's a students database key
+
             if (key && key.startsWith('allStudents_')) {
                 try {
                     const students = JSON.parse(localStorage.getItem(key));
                     if (Array.isArray(students)) {
+                        const owner = key.replace('allStudents_', '');
                         students.forEach(student => {
-                            // Add the owner information
-                            const owner = key.replace('allStudents_', '');
                             allStudents.push({
                                 ...student,
                                 owner: owner,
@@ -80,8 +82,500 @@
                 }
             }
         }
-        
+
         return allStudents;
+    }
+
+    function generateSlug(value) {
+        return value
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+    }
+
+    function generateClassId(className) {
+        const nameSlug = generateSlug(className);
+        const timestamp = Date.now();
+        return `${nameSlug}_${timestamp}`;
+    }
+
+    function renderTempClassStudents() {
+        if (!classStudentTempList) return;
+
+        if (!tempClassStudents.length) {
+            classStudentTempList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 1.25rem; text-align: center; color: var(--text-light);">
+                        No students added yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        classStudentTempList.innerHTML = tempClassStudents.map(student => `
+            <tr>
+                <td style="padding: 0.75rem; font-family: monospace;">${student.id}</td>
+                <td style="padding: 0.75rem;">${student.name}</td>
+                <td style="padding: 0.75rem;">${student.program || 'N/A'}</td>
+                <td style="padding: 0.5rem; text-align: center;">
+                    <button class="btn btn-outline remove-class-student-btn" data-student-id="${student.id}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        updateSelectedStudentsCount();
+    }
+
+    function resetClassBuilder() {
+        tempClassStudents = [];
+        editingClassId = null;
+        selectedStudentIds.clear();
+        if (classNameInput) classNameInput.value = '';
+        renderTempClassStudents();
+        updateSelectedStudentsCount();
+    }
+
+    function populateClassBuilder(classData) {
+        editingClassId = classData.classId;
+        if (classNameInput) classNameInput.value = classData.name || '';
+        tempClassStudents = Array.isArray(classData.students)
+            ? classData.students.map(student => ({
+                id: student.id,
+                name: student.name,
+                program: student.program || '',
+                presentCount: student.presentCount || 0,
+                lateCount: student.lateCount || 0,
+                attendanceHistory: student.attendanceHistory || []
+            }))
+            : [];
+        renderTempClassStudents();
+        updateSelectedStudentsCount();
+    }
+
+    async function loadClasses() {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return [];
+        }
+
+        try {
+            const classes = await attendanceDB.getAllClasses();
+            return Array.isArray(classes) ? classes : [];
+        } catch (error) {
+            console.error('Error loading classes:', error);
+            return [];
+        }
+    }
+
+    async function renderClasses() {
+        if (!existingClassesList) return;
+
+        const classes = await loadClasses();
+
+        if (!classes.length) {
+            existingClassesList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 1.25rem; text-align: center; color: var(--text-light);">
+                        No classes created yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        classes.sort((a, b) => a.name.localeCompare(b.name));
+
+        existingClassesList.innerHTML = classes.map(cls => `
+            <tr>
+                <td style="padding: 0.75rem;">${cls.name}</td>
+                <td style="padding: 0.75rem; text-align: center;">${(cls.students || []).length}</td>
+                <td style="padding: 0.5rem; text-align: center;">
+                    <div style="display: flex; gap: 0.4rem; justify-content: center;">
+                        <button class="btn btn-outline edit-class-btn" data-class-id="${cls.classId}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                            Edit
+                        </button>
+                        <button class="btn btn-outline delete-class-btn" data-class-id="${cls.classId}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; color: var(--danger); border-color: var(--danger);">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    renderTempClassStudents();
+
+    function buildStudentId(name, providedId) {
+        if (providedId && providedId.trim().length) {
+            return providedId.trim().toUpperCase();
+        }
+        return name
+            .trim()
+            .replace(/\s+/g, '_')
+            .toUpperCase();
+    }
+
+    async function loadAllStudentsForSelection() {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return [];
+        }
+        
+        try {
+            const students = await attendanceDB.getAllStudents();
+            return students;
+        } catch (error) {
+            console.error('Error loading students:', error);
+            return [];
+        }
+    }
+
+    async function renderStudentSelector() {
+        if (!studentSelectorList) return;
+        
+        allStudentsForSelection = await loadAllStudentsForSelection();
+        
+        if (!allStudentsForSelection.length) {
+            studentSelectorList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-light);">
+                        No students found in database. Students will be added when they scan their QR codes.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        filterAndRenderStudents();
+    }
+
+    function filterAndRenderStudents() {
+        const searchTerm = (studentSearchInput?.value || '').toLowerCase().trim();
+        const filtered = allStudentsForSelection.filter(student => {
+            if (!searchTerm) return true;
+            const name = (student.name || '').toLowerCase();
+            const id = (student.id || '').toLowerCase();
+            const program = (student.program || '').toLowerCase();
+            return name.includes(searchTerm) || id.includes(searchTerm) || program.includes(searchTerm);
+        });
+
+        if (!filtered.length) {
+            studentSelectorList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-light);">
+                        No students match your search.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        studentSelectorList.innerHTML = filtered.map(student => {
+            const isSelected = selectedStudentIds.has(student.id);
+            return `
+                <tr style="cursor: pointer;" onclick="toggleStudentSelection('${student.id}')">
+                    <td style="padding: 0.75rem; text-align: center;">
+                        <input type="checkbox" 
+                               data-student-id="${student.id}" 
+                               ${isSelected ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleStudentSelection('${student.id}')"
+                               style="cursor: pointer;">
+                    </td>
+                    <td style="padding: 0.75rem;">${student.id || ''}</td>
+                    <td style="padding: 0.75rem;">${student.name || ''}</td>
+                    <td style="padding: 0.75rem;">${student.program || ''}</td>
+                </tr>
+            `;
+        }).join('');
+
+        updateModalSelectedCount();
+    }
+
+    window.toggleStudentSelection = function(studentId) {
+        if (selectedStudentIds.has(studentId)) {
+            selectedStudentIds.delete(studentId);
+        } else {
+            selectedStudentIds.add(studentId);
+        }
+        
+        const checkbox = document.querySelector(`input[data-student-id="${studentId}"]`);
+        if (checkbox) {
+            checkbox.checked = selectedStudentIds.has(studentId);
+        }
+        
+        updateModalSelectedCount();
+    };
+
+    function updateModalSelectedCount() {
+        const count = selectedStudentIds.size;
+        if (modalSelectedCount) {
+            modalSelectedCount.textContent = count;
+        }
+        if (selectAllStudentsCheckbox) {
+            const visibleCheckboxes = document.querySelectorAll('input[data-student-id]');
+            const allVisibleSelected = visibleCheckboxes.length > 0 && 
+                Array.from(visibleCheckboxes).every(cb => selectedStudentIds.has(cb.dataset.studentId));
+            selectAllStudentsCheckbox.checked = allVisibleSelected;
+        }
+    }
+
+    function updateSelectedStudentsCount() {
+        if (selectedStudentsCount) {
+            selectedStudentsCount.textContent = tempClassStudents.length;
+        }
+    }
+
+    function handleConfirmStudentSelection() {
+        const selectedStudents = allStudentsForSelection.filter(s => selectedStudentIds.has(s.id));
+        
+        selectedStudents.forEach(student => {
+            const existingIndex = tempClassStudents.findIndex(s => s.id === student.id);
+            if (existingIndex < 0) {
+                tempClassStudents.push({
+                    id: student.id,
+                    name: student.name,
+                    program: student.program || '',
+                    presentCount: student.presentCount || 0,
+                    lateCount: student.lateCount || 0,
+                    attendanceHistory: student.attendanceHistory || []
+                });
+            }
+        });
+
+        renderTempClassStudents();
+        updateSelectedStudentsCount();
+        closeStudentSelectorModal();
+    }
+
+    function openStudentSelectorModal() {
+        if (!studentSelectorModal) return;
+        selectedStudentIds.clear();
+        tempClassStudents.forEach(s => selectedStudentIds.add(s.id));
+        studentSelectorModal.style.display = 'flex';
+        renderStudentSelector();
+    }
+
+    function closeStudentSelectorModal() {
+        if (!studentSelectorModal) return;
+        studentSelectorModal.style.display = 'none';
+        if (studentSearchInput) studentSearchInput.value = '';
+    }
+
+    async function handleSaveClass() {
+        const className = (classNameInput?.value || '').trim();
+
+        if (!className) {
+            showNotification('Please enter a class name.', 'error');
+            return;
+        }
+
+        if (tempClassStudents.length === 0) {
+            showNotification('Add at least one student to the class before saving.', 'error');
+            return;
+        }
+
+        if (!dbReady) {
+            showNotification('Database not ready. Please wait a moment and try again.', 'error');
+            return;
+        }
+
+        const timestamp = new Date().toISOString();
+        const classId = editingClassId || generateClassId(className);
+        let existingClass = null;
+
+        if (editingClassId) {
+            existingClass = await attendanceDB.getClass(editingClassId);
+        }
+
+        const classStudents = tempClassStudents.map(student => ({
+            ...student,
+            classId,
+            className
+        }));
+
+        const classRecord = {
+            classId,
+            name: className,
+            students: classStudents,
+            createdAt: existingClass?.createdAt || timestamp,
+            updatedAt: timestamp
+        };
+
+        try {
+            await attendanceDB.addClass(classRecord);
+
+            for (const student of classStudents) {
+                await attendanceDB.addStudent({
+                    id: student.id,
+                    name: student.name,
+                    program: student.program,
+                    classId: classId,
+                    className: className,
+                    presentCount: student.presentCount || 0,
+                    lateCount: student.lateCount || 0,
+                    absentCount: student.absentCount || 0,
+                    attendanceHistory: student.attendanceHistory || []
+                });
+            }
+
+            showNotification(editingClassId ? 'Class updated successfully!' : 'Class created successfully!', 'success');
+            resetClassBuilder();
+            await renderClasses();
+            await renderStudents();
+        } catch (error) {
+            console.error('Error saving class:', error);
+            showNotification('Failed to save class. Please try again.', 'error');
+        }
+    }
+
+    if (openStudentSelectorBtn) {
+        openStudentSelectorBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            openStudentSelectorModal();
+        });
+    }
+
+    if (confirmStudentSelectorBtn) {
+        confirmStudentSelectorBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            handleConfirmStudentSelection();
+        });
+    }
+
+    if (cancelStudentSelectorBtn) {
+        cancelStudentSelectorBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeStudentSelectorModal();
+        });
+    }
+
+    if (closeStudentSelectorBtn) {
+        closeStudentSelectorBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeStudentSelectorModal();
+        });
+    }
+
+    if (studentSearchInput) {
+        studentSearchInput.addEventListener('input', () => {
+            filterAndRenderStudents();
+        });
+    }
+
+    if (selectAllStudentsCheckbox) {
+        selectAllStudentsCheckbox.addEventListener('change', (e) => {
+            const visibleCheckboxes = document.querySelectorAll('input[data-student-id]');
+            const shouldSelect = e.target.checked;
+            visibleCheckboxes.forEach(cb => {
+                const studentId = cb.dataset.studentId;
+                if (shouldSelect) {
+                    selectedStudentIds.add(studentId);
+                } else {
+                    selectedStudentIds.delete(studentId);
+                }
+                cb.checked = shouldSelect;
+            });
+            updateModalSelectedCount();
+        });
+    }
+
+    if (resetClassBtn) {
+        resetClassBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            resetClassBuilder();
+        });
+    }
+
+    if (saveClassBtn) {
+        saveClassBtn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            await handleSaveClass();
+        });
+    }
+
+    if (classStudentTempList) {
+        classStudentTempList.addEventListener('click', (event) => {
+            const button = event.target.closest('.remove-class-student-btn');
+            if (!button) return;
+
+            event.preventDefault();
+            const studentId = button.dataset.studentId;
+            tempClassStudents = tempClassStudents.filter(student => student.id !== studentId);
+            renderTempClassStudents();
+            updateSelectedStudentsCount();
+        });
+    }
+
+    if (existingClassesList) {
+        existingClassesList.addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-class-id]');
+            if (!button) return;
+
+            event.preventDefault();
+            const classId = button.dataset.classId;
+
+            if (button.classList.contains('edit-class-btn')) {
+                if (!dbReady) {
+                    showNotification('Database not ready yet. Please try again in a moment.', 'error');
+                    return;
+                }
+
+                const classData = await attendanceDB.getClass(classId);
+                if (!classData) {
+                    showNotification('Selected class could not be found.', 'error');
+                    return;
+                }
+
+                populateClassBuilder(classData);
+                showNotification(`Loaded ${classData.name} for editing. Remember to click Save Class after updates.`, 'info');
+            } else if (button.classList.contains('delete-class-btn')) {
+                if (!confirm('Are you sure you want to delete this class? Student records will remain in the roster.')) {
+                    return;
+                }
+
+                if (!dbReady) {
+                    showNotification('Database not ready yet. Please try again in a moment.', 'error');
+                    return;
+                }
+
+                try {
+                    await attendanceDB.deleteClass(classId);
+                    if (editingClassId === classId) {
+                        resetClassBuilder();
+                    }
+                    await renderClasses();
+                    showNotification('Class deleted successfully.', 'success');
+                } catch (error) {
+                    console.error('Error deleting class:', error);
+                    showNotification('Failed to delete class. Please try again.', 'error');
+                }
+            }
+        });
+    }
+
+
+    // Get all students from IndexedDB
+    async function getAllStudents() {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return getStudentsFromLocalStorage();
+        }
+        
+        try {
+            const students = await attendanceDB.getAllStudents();
+            // Add storageKey for compatibility
+            return students.map(student => ({
+                ...student,
+                storageKey: `allStudents_${student.owner}`
+            }));
+        } catch (error) {
+            console.error('Error getting students:', error);
+            return getStudentsFromLocalStorage();
+        }
     }
 
     // Save student to IndexedDB
@@ -97,6 +591,8 @@
                 name: student.name,
                 program: student.program,
                 owner: student.owner,
+                classId: student.classId || null,
+                className: student.className || null,
                 presentCount: student.presentCount || 0,
                 lateCount: student.lateCount || 0,
                 attendanceHistory: student.attendanceHistory || []
@@ -138,7 +634,7 @@
         if (students.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="padding: 3rem; text-align: center; color: var(--text-light);">
+                    <td colspan="7" style="padding: 3rem; text-align: center; color: var(--text-light);">
                         <svg style="width: 60px; height: 60px; margin: 0 auto 1rem; display: block; opacity: 0.3;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                             <circle cx="9" cy="7" r="4"></circle>
@@ -156,9 +652,10 @@
             <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='white'">
                 <td style="padding: 1rem; color: var(--text-light); font-family: monospace;">${student.id}</td>
                 <td style="padding: 1rem; font-weight: 500; color: var(--text);">${student.name}</td>
+                <td style="padding: 1rem; color: var(--text);">${student.className || '—'}</td>
                 <td style="padding: 1rem; color: var(--text);">
                     <span style="background: var(--light); padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.9rem;">
-                        ${student.program}
+                        ${student.program || '—'}
                     </span>
                 </td>
                 <td style="padding: 1rem; text-align: center;">
@@ -201,53 +698,6 @@
             btn.addEventListener('click', handleDelete);
         });
     }
-
-    // Add student
-    document.getElementById('add-student-btn').addEventListener('click', async () => {
-        const name = document.getElementById('student-name').value.trim();
-        const course = document.getElementById('student-course').value.trim();
-        
-        if (!name || !course) {
-            alert('Please enter both student name and course.');
-            return;
-        }
-        
-        if (!dbReady) {
-            showNotification('Database not ready. Please wait...', 'error');
-            return;
-        }
-        
-        // Create a student ID from the name
-        const studentId = name.replace(/\s+/g, '_').toUpperCase();
-        
-        // Check if student already exists
-        const existingStudent = await attendanceDB.getStudent(studentId);
-        if (existingStudent) {
-            alert('A student with this name already exists!');
-            return;
-        }
-        
-        // Add to IndexedDB
-        await attendanceDB.addStudent({
-            id: studentId,
-            name: name,
-            program: course,
-            owner: 'admin@gmail.com',
-            presentCount: 0,
-            lateCount: 0,
-            attendanceHistory: []
-        });
-        
-        // Clear form
-        document.getElementById('student-name').value = '';
-        document.getElementById('student-course').value = '';
-        
-        // Refresh list
-        renderStudents();
-        
-        // Show success message
-        showNotification('Student added successfully!', 'success');
-    });
 
     // Edit student
     let currentEditStudent = null;

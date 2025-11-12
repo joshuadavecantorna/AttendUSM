@@ -4,7 +4,7 @@
 class AttendanceDB {
     constructor() {
         this.dbName = 'USMAttendanceDB';
-        this.version = 1;
+        this.version = 2;
         this.db = null;
     }
 
@@ -52,6 +52,13 @@ class AttendanceDB {
                     const sessionStore = db.createObjectStore('sessions', { keyPath: 'sessionId' });
                     sessionStore.createIndex('owner', 'owner', { unique: false });
                     sessionStore.createIndex('date', 'date', { unique: false });
+                }
+
+                // Classes store (v2)
+                if (!db.objectStoreNames.contains('classes')) {
+                    const classStore = db.createObjectStore('classes', { keyPath: 'classId' });
+                    classStore.createIndex('owner', 'owner', { unique: false });
+                    classStore.createIndex('name', 'name', { unique: false });
                 }
 
                 console.log('Database setup complete');
@@ -178,6 +185,27 @@ class AttendanceDB {
         return this.getAll('nfcRegistry');
     }
 
+    // Class methods
+    async addClass(classData) {
+        return this.put('classes', classData);
+    }
+
+    async getClass(classId) {
+        return this.get('classes', classId);
+    }
+
+    async getAllClasses() {
+        return this.getAll('classes');
+    }
+
+    async getClassesByOwner(owner) {
+        return this.getByIndex('classes', 'owner', owner);
+    }
+
+    async deleteClass(classId) {
+        return this.delete('classes', classId);
+    }
+
     // User methods
     async addUser(user) {
         return this.put('users', user);
@@ -198,6 +226,7 @@ class AttendanceDB {
             const nfcRegistry = await this.getAllNFCTags();
             const users = await this.getAllUsers();
             const sessions = await this.getAll('sessions');
+            const classes = await this.getAllClasses();
 
             return {
                 exportDate: new Date().toISOString(),
@@ -206,7 +235,8 @@ class AttendanceDB {
                 students: students,
                 nfcRegistry: nfcRegistry,
                 users: users.map(u => ({ email: u.email })), // Don't export passwords
-                sessions: sessions
+                sessions: sessions,
+                classes: classes
             };
         } catch (error) {
             console.error('Export error:', error);
@@ -241,7 +271,16 @@ class AttendanceDB {
                 }
             }
 
-            return importCount;
+            // Import classes
+            if (data.classes && Array.isArray(data.classes)) {
+                for (const classData of data.classes) {
+                    await this.addClass(classData);
+                }
+            }
+
+            return {
+                studentsImported: importCount
+            };
         } catch (error) {
             console.error('Import error:', error);
             throw error;

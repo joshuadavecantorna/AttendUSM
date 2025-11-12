@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const attendanceDisplay = document.getElementById('attendance-display');
     const logoutBtn = document.getElementById('logout-btn');
     const startSessionBtn = document.getElementById('start-session-btn');
+    const classSelect = document.getElementById('class-select');
     const scanQrBtn = document.getElementById('scan-qr-btn');
     const scanNfcBtn = document.getElementById('scan-nfc-btn');
     const exportExcelBtn = document.getElementById('export-excel-btn');
@@ -48,12 +49,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- State Variables ---
     let loggedInUser = localStorage.getItem('loggedInUser');
     let studentsDB = [];
-    let currentCourse = null;
-    let currentSemester = null;
+    let classesDB = [];
+    let currentClassId = null;
+    let currentClassName = null;
     let classStartTime = null;
     let currentClassTimeStr = null;
     let currentSessionId = null;
     let attendanceDataForCurrentSession = [];
+    let currentClassRoster = [];
     let qrScanningActive = false;
     const recentScanCache = new Map();
 
@@ -64,6 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const students = await attendanceDB.getStudentsByOwner(loggedInUser);
             return students.map(student => ({
                 ...student,
+                absentCount: student.absentCount || 0,
+                classId: student.classId || null,
+                className: student.className || null,
                 attendanceHistory: (student.attendanceHistory || []).map(record => {
                     if (typeof record.isLate !== 'undefined') {
                         return {
@@ -75,7 +81,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             timestamp: record.timestamp || new Date().toISOString()
                         };
                     }
-                    return record;
+                    return {
+                        ...record,
+                        classId: record.classId || student.classId || null,
+                        className: record.className || student.className || null
+                    };
                 })
             }));
         } catch (e) {
@@ -100,6 +110,193 @@ document.addEventListener('DOMContentLoaded', async () => {
             await autoBackupAttendanceData();
         } catch (e) {
             console.error("Error saving studentsDB:", e);
+        }
+    }
+
+    async function loadClassesDB() {
+        try {
+            if (!loggedInUser || !dbReady) return [];
+            const classes = await attendanceDB.getAllClasses();
+            return Array.isArray(classes) ? classes : [];
+        } catch (error) {
+            console.error('Error loading classes:', error);
+            return [];
+        }
+    }
+
+    function updateClassSelectOptions() {
+        if (!classSelect) return;
+
+        const previousSelection = classSelect.value;
+        classSelect.innerHTML = '';
+
+        if (!classesDB.length) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No classes available';
+            classSelect.appendChild(option);
+            classSelect.disabled = true;
+            return;
+        }
+
+        classSelect.disabled = false;
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select class';
+        classSelect.appendChild(placeholder);
+
+        classesDB.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls.classId;
+            option.textContent = cls.name;
+            classSelect.appendChild(option);
+        });
+
+        if (previousSelection) {
+            const optionToRestore = Array.from(classSelect.options).find(opt => opt.value === previousSelection);
+            if (optionToRestore) {
+                classSelect.value = previousSelection;
+            }
+        }
+    }
+
+    function findClassById(classId) {
+        return classesDB.find(cls => cls.classId === classId);
+    }
+
+    function adjustAttendanceCounts(student, oldStatus, newStatus) {
+        if (!student) return;
+
+        const decrement = (field) => {
+            if (typeof student[field] !== 'number') student[field] = 0;
+            if (student[field] > 0) {
+                student[field] -= 1;
+            }
+        };
+
+        const increment = (field) => {
+            if (typeof student[field] !== 'number') student[field] = 0;
+            student[field] += 1;
+        };
+
+        if (oldStatus && oldStatus !== newStatus) {
+            if (oldStatus === 'Present') decrement('presentCount');
+            if (oldStatus === 'Late') decrement('lateCount');
+            if (oldStatus === 'Absent') decrement('absentCount');
+        }
+
+        if (!oldStatus || oldStatus !== newStatus) {
+            if (newStatus === 'Present') increment('presentCount');
+            if (newStatus === 'Late') increment('lateCount');
+            if (newStatus === 'Absent') increment('absentCount');
+        }
+    }
+
+    function upsertAttendanceRecord(student, status) {
+        if (!student) return;
+
+        const existingRecord = (student.attendanceHistory || []).find(record => record.sessionId === currentSessionId);
+        const timestamp = new Date().toISOString();
+
+        if (existingRecord) {
+            const oldStatus = existingRecord.status;
+            existingRecord.status = status;
+            existingRecord.classId = currentClassId;
+            existingRecord.className = currentClassName;
+            existingRecord.classTime = currentClassTimeStr;
+            existingRecord.timestamp = timestamp;
+            adjustAttendanceCounts(student, oldStatus, status);
+        } else {
+            if (!student.attendanceHistory) {
+                student.attendanceHistory = [];
+            }
+            student.attendanceHistory.push({
+                sessionId: currentSessionId,
+                status,
+                classId: currentClassId,
+                className: currentClassName,
+                classTime: currentClassTimeStr,
+                timestamp
+            });
+            adjustAttendanceCounts(student, null, status);
+        }
+    }
+
+    function prepareSessionRoster(selectedClass) {
+        attendanceDataForCurrentSession = [];
+        currentClassRoster = [];
+
+        if (!selectedClass) return;
+
+        const roster = Array.isArray(selectedClass.students) ? selectedClass.students : [];
+
+        roster.forEach(classStudent => {
+            if (!currentClassRoster.includes(classStudent.id)) {
+                currentClassRoster.push(classStudent.id);
+            }
+            let student = studentsDB.find(s => s.id === classStudent.id);
+
+            if (!student) {
+                student = {
+                    id: classStudent.id,
+                    name: classStudent.name,
+                    program: classStudent.program || '',
+                    owner: loggedInUser,
+                    classId: selectedClass.classId,
+                    className: selectedClass.name,
+                    presentCount: 0,
+                    lateCount: 0,
+                    absentCount: 0,
+                    attendanceHistory: []
+                };
+                studentsDB.push(student);
+            } else {
+                student.classId = selectedClass.classId;
+                student.className = selectedClass.name;
+                if (typeof student.absentCount !== 'number') student.absentCount = 0;
+            }
+
+            const existingRecord = (student.attendanceHistory || []).find(record => record.sessionId === currentSessionId);
+
+            if (!existingRecord) {
+                upsertAttendanceRecord(student, 'Absent');
+            }
+
+            const record = (student.attendanceHistory || []).find(r => r.sessionId === currentSessionId);
+
+            attendanceDataForCurrentSession.push({
+                id: student.id,
+                name: student.name,
+                program: student.program,
+                status: record ? record.status : 'Absent'
+            });
+        });
+
+        attendanceDataForCurrentSession.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    async function ensureStudentInCurrentClass(student) {
+        if (!currentClassId || !student || !dbReady) return;
+
+        const classIndex = classesDB.findIndex(cls => cls.classId === currentClassId);
+        if (classIndex === -1) return;
+
+        const classRecord = classesDB[classIndex];
+        if (!Array.isArray(classRecord.students)) {
+            classRecord.students = [];
+        }
+
+        if (!classRecord.students.find(s => s.id === student.id)) {
+            classRecord.students.push({
+                id: student.id,
+                name: student.name,
+                program: student.program
+            });
+
+            classRecord.updatedAt = new Date().toISOString();
+            await attendanceDB.addClass(classRecord);
+            classesDB[classIndex] = classRecord;
         }
     }
 
@@ -140,6 +337,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI State Management Functions ---
     if (loggedInUser) {
         studentsDB = await loadStudentsDB();
+        classesDB = await loadClassesDB();
+        updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
     } else {
@@ -168,17 +367,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateStatusCounters() {
         const presentCount = attendanceDataForCurrentSession.filter(s => s.status === 'Present').length;
         const lateCount = attendanceDataForCurrentSession.filter(s => s.status === 'Late').length;
+        const absentCount = attendanceDataForCurrentSession.filter(s => s.status === 'Absent').length;
+        const totalRoster = attendanceDataForCurrentSession.length;
+        const attendedCount = presentCount + lateCount;
+
         presentCountDisplay.textContent = presentCount;
         lateCountDisplay.textContent = lateCount;
         
-        // Update total count and attendance rate
         const totalCountDisplay = document.getElementById('total-count');
         const attendanceRateDisplay = document.getElementById('attendance-rate');
-        if (totalCountDisplay) totalCountDisplay.textContent = attendanceDataForCurrentSession.length;
-        if (attendanceRateDisplay && studentsDB.length > 0) {
-            const rate = Math.round((attendanceDataForCurrentSession.length / studentsDB.length) * 100);
+        if (totalCountDisplay) totalCountDisplay.textContent = totalRoster;
+        if (attendanceRateDisplay) {
+            const rate = totalRoster > 0 ? Math.round((attendedCount / totalRoster) * 100) : 0;
             attendanceRateDisplay.textContent = rate + '%';
         }
+
+        const absentBadge = document.getElementById('absent-count');
+        if (absentBadge) absentBadge.textContent = absentCount;
     }
 
     function refreshStudentListUI() {
@@ -209,32 +414,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function updateExportSubjectOptions() {
-        // Get all unique courses from attendance history
-        const courses = new Set();
+        if (!exportSubjectSelect) return;
+
+        const classMap = new Map();
+
         studentsDB.forEach(student => {
-            student.attendanceHistory.forEach(record => {
-                if (record.course) {
-                    courses.add(`${record.course} - ${record.semester}`);
+            (student.attendanceHistory || []).forEach(record => {
+                if (record.classId) {
+                    classMap.set(record.classId, record.className || record.classId);
                 }
             });
         });
+
+        classesDB.forEach(cls => {
+            if (cls.classId) {
+                classMap.set(cls.classId, cls.name);
+            }
+        });
         
-        // Clear existing options except the first two
         while (exportSubjectSelect.options.length > 2) {
             exportSubjectSelect.remove(2);
         }
-        
-        // Add options for each course
-        courses.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course;
-            option.textContent = course;
-            exportSubjectSelect.appendChild(option);
-        });
+
+        Array.from(classMap.entries())
+            .sort((a, b) => a[1].localeCompare(b[1]))
+            .forEach(([classId, className]) => {
+                const option = document.createElement('option');
+                option.value = classId;
+                option.textContent = className;
+                exportSubjectSelect.appendChild(option);
+            });
     }
 
     // --- Authentication Functions ---
-    function handleLogin() {
+    async function handleLogin() {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value.trim();
         
@@ -264,9 +477,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         loggedInUser = username;
         localStorage.setItem('loggedInUser', loggedInUser);
-        studentsDB = loadStudentsDB();
+        studentsDB = await loadStudentsDB();
+        classesDB = await loadClassesDB();
+        updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
+        refreshStudentListUI();
         document.getElementById('login-form').reset();
         loginError.style.display = 'none';
     }
@@ -431,6 +647,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         
         await saveNFCTag(nfcId, tagData);
+
+        // Ensure the student exists in the local roster and persist to IndexedDB
+        let student = studentsDB.find(s => s.id === studentId);
+        if (!student) {
+            student = {
+                id: studentId,
+                name: studentName,
+                program: studentCourse,
+                owner: loggedInUser,
+                classId: null,
+                className: null,
+                presentCount: 0,
+                lateCount: 0,
+                absentCount: 0,
+                attendanceHistory: []
+            };
+            studentsDB.push(student);
+        } else {
+            // Keep student profile in sync with the latest registration info
+            student.name = studentName;
+            student.program = studentCourse;
+            student.owner = loggedInUser;
+            if (typeof student.absentCount !== 'number') student.absentCount = 0;
+        }
+
+        if (loggedInUser) {
+            await saveStudentsDB();
+        } else {
+            console.warn('NFC registration completed without a logged-in user; student record not persisted.');
+        }
+
         showScanSuccessAnimation(studentName, 'NFC Tag Registered');
         return true;
     }
@@ -469,63 +716,65 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // NFC tag registered and session active - process attendance
         const studentId = studentData.studentId;
-        
-        // Check if already scanned in this session
-        const existingRecord = attendanceDataForCurrentSession.find(rec => rec.id === studentId);
-        if (existingRecord) {
-            showNfcWarning(studentData.name, `Already marked as ${existingRecord.status} for this session`);
-            return;
-        }
-        
-        // Process attendance
+
         const currentTime = new Date();
         const lateThresholdMinutes = 15;
         const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
         const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
-        
+
         let student = studentsDB.find(s => s.id === studentId);
-        
+
         if (!student) {
-            // Create student if doesn't exist
             student = {
                 id: studentId,
                 name: studentData.name,
-                program: studentData.course,
+                program: studentData.course || '',
+                owner: loggedInUser,
+                classId: currentClassId,
+                className: currentClassName,
                 presentCount: 0,
                 lateCount: 0,
+                absentCount: 0,
                 attendanceHistory: []
             };
             studentsDB.push(student);
-        }
-        
-        // Update counts
-        if (determinedStatus === 'Late') {
-            student.lateCount = (student.lateCount || 0) + 1;
         } else {
-            student.presentCount = (student.presentCount || 0) + 1;
+            student.name = studentData.name;
+            student.program = studentData.course || student.program;
+            student.owner = loggedInUser;
+            student.classId = currentClassId;
+            student.className = currentClassName;
+            if (typeof student.absentCount !== 'number') student.absentCount = 0;
         }
-        
-        // Add attendance record
-        student.attendanceHistory.push({
-            sessionId: currentSessionId,
-            status: determinedStatus,
-            course: currentCourse,
-            semester: currentSemester,
-            classTime: currentClassTimeStr,
-            timestamp: new Date().toISOString()
-        });
-        
-        // Add to current session display
-        attendanceDataForCurrentSession.push({
-            id: student.id,
-            name: student.name,
-            program: student.program,
-            status: determinedStatus
-        });
-        
-        saveStudentsDB();
+
+        const sessionEntry = attendanceDataForCurrentSession.find(rec => rec.id === studentId);
+
+        if (sessionEntry && (sessionEntry.status === 'Present' || sessionEntry.status === 'Late')) {
+            showNfcWarning(studentData.name, `Already marked as ${sessionEntry.status} for this session`);
+            return;
+        }
+
+        upsertAttendanceRecord(student, determinedStatus);
+
+        if (sessionEntry) {
+            sessionEntry.status = determinedStatus;
+        } else {
+            attendanceDataForCurrentSession.push({
+                id: student.id,
+                name: student.name,
+                program: student.program,
+                status: determinedStatus
+            });
+            if (!currentClassRoster.includes(student.id)) {
+                currentClassRoster.push(student.id);
+            }
+        }
+
+        attendanceDataForCurrentSession.sort((a, b) => a.name.localeCompare(b.name));
+
+        await ensureStudentInCurrentClass(student);
+        await saveStudentsDB();
         refreshStudentListUI();
         updateExportSubjectOptions();
         showNfcSuccess(student.name, determinedStatus);
@@ -693,17 +942,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Regular QR attendance processing
         if (!currentSessionId) {
-            showPermissionModal('Session not started. Please set course, semester, and class time.', 'error');
+            showPermissionModal('Session not started. Please select a class and start the session.', 'error');
             return;
         }
 
         // Generate unique ID from name
         const id = studentName.replace(/\s+/g, '_').toUpperCase();
 
-        // Check if already scanned in this session
-        const existingRecord = attendanceDataForCurrentSession.find(rec => rec.id === id);
-        if (existingRecord) {
-            showScanWarningAnimation(existingRecord.name, `Already marked as ${existingRecord.status} for this session`);
+        const sessionEntry = attendanceDataForCurrentSession.find(rec => rec.id === id);
+        if (sessionEntry && (sessionEntry.status === 'Present' || sessionEntry.status === 'Late')) {
+            showScanWarningAnimation(sessionEntry.name, `Already marked as ${sessionEntry.status} for this session`);
             return;
         }
 
@@ -714,69 +962,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let student = studentsDB.find(s => s.id === id);
 
-        if (student) {
-            // Update counts
-            if (determinedStatus === 'Late') {
-                student.lateCount = (student.lateCount || 0) + 1;
-            } else {
-                student.presentCount = (student.presentCount || 0) + 1;
-            }
+        if (!student) {
+            student = {
+                id,
+                name: studentName,
+                program: studentCourse,
+                owner: loggedInUser,
+                classId: currentClassId,
+                className: currentClassName,
+                presentCount: 0,
+                lateCount: 0,
+                absentCount: 0,
+                attendanceHistory: []
+            };
+            studentsDB.push(student);
+        } else {
+            student.name = studentName;
+            student.program = studentCourse || student.program;
+            student.owner = loggedInUser;
+            student.classId = currentClassId;
+            student.className = currentClassName;
+            if (typeof student.absentCount !== 'number') student.absentCount = 0;
+        }
 
-            // Add attendance record
-            student.attendanceHistory.push({
-                sessionId: currentSessionId,
-                status: determinedStatus,
-                course: currentCourse,
-                semester: currentSemester,
-                classTime: currentClassTimeStr,
-                timestamp: new Date().toISOString()
-            });
+        upsertAttendanceRecord(student, determinedStatus);
 
-            // Add to current session display
+        if (sessionEntry) {
+            sessionEntry.status = determinedStatus;
+        } else {
             attendanceDataForCurrentSession.push({
                 id: student.id,
                 name: student.name,
                 program: student.program,
                 status: determinedStatus
             });
-
-            await saveStudentsDB();
-            refreshStudentListUI();
-            updateExportSubjectOptions();
-            showScanSuccessAnimation(student.name, determinedStatus);
-        } else {
-            // Automatically create new student from QR data
-            const newStudent = {
-                id: id,
-                name: studentName,
-                program: studentCourse,
-                presentCount: determinedStatus === 'Present' ? 1 : 0,
-                lateCount: determinedStatus === 'Late' ? 1 : 0,
-                attendanceHistory: [{
-                    sessionId: currentSessionId,
-                    status: determinedStatus,
-                    course: currentCourse,
-                    semester: currentSemester,
-                    classTime: currentClassTimeStr,
-                    timestamp: new Date().toISOString()
-                }]
-            };
-
-            studentsDB.push(newStudent);
-
-            // Add to current session display
-            attendanceDataForCurrentSession.push({
-                id: newStudent.id,
-                name: newStudent.name,
-                program: newStudent.program,
-                status: determinedStatus
-            });
-
-            await saveStudentsDB();
-            refreshStudentListUI();
-            updateExportSubjectOptions();
-            showScanSuccessAnimation(newStudent.name, determinedStatus);
+            if (!currentClassRoster.includes(student.id)) {
+                currentClassRoster.push(student.id);
+            }
         }
+
+        attendanceDataForCurrentSession.sort((a, b) => a.name.localeCompare(b.name));
+
+        await ensureStudentInCurrentClass(student);
+        await saveStudentsDB();
+        refreshStudentListUI();
+        updateExportSubjectOptions();
+        showScanSuccessAnimation(student.name, determinedStatus);
     }
 
     function showScanSuccessAnimation(studentName, status) {
@@ -906,50 +1137,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('loggedInUser');
         loggedInUser = null;
-        currentCourse = null;
-        currentSemester = null;
+        studentsDB = [];
+        classesDB = [];
+        currentClassId = null;
+        currentClassName = null;
         classStartTime = null;
         currentClassTimeStr = null;
         currentSessionId = null;
         attendanceDataForCurrentSession = [];
+        currentClassRoster = [];
+        updateClassSelectOptions();
+        refreshStudentListUI();
         showAuthSection();
         stopQrScanner();
     });
 
-    startSessionBtn.addEventListener('click', () => {
-        const courseInput = document.getElementById('course').value.trim();
-        const semesterInput = document.getElementById('semester').value;
+    startSessionBtn.addEventListener('click', async () => {
+        const selectedClassId = classSelect ? classSelect.value : '';
         const timeInput = document.getElementById('class-time').value;
 
-        if (!courseInput || !semesterInput || !timeInput) {
-            showPermissionModal('Please fill all session details to start.', 'error');
+        if (!selectedClassId || !timeInput) {
+            showPermissionModal('Please select a class and set the class time before starting the session.', 'error');
             return;
         }
 
-        currentCourse = courseInput;
-        currentSemester = semesterInput;
+        const selectedClass = findClassById(selectedClassId);
+
+        if (!selectedClass) {
+            showPermissionModal('Selected class could not be found. Please refresh and try again.', 'error');
+            return;
+        }
+
+        currentClassId = selectedClass.classId;
+        currentClassName = selectedClass.name;
         currentClassTimeStr = timeInput;
 
         const now = new Date();
         const [hours, minutes] = timeInput.split(':').map(Number);
         classStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
 
-        currentSessionId = `${currentCourse.replace(/\s/g, '_')}-${currentSemester.replace(/\s/g, '_')}-${now.toISOString().slice(0, 10)}-${timeInput.replace(':', '')}`;
+        currentSessionId = `${currentClassId}-${now.toISOString().slice(0, 10)}-${timeInput.replace(':', '')}`;
 
-        attendanceDataForCurrentSession = [];
-        studentsDB.forEach(student => {
-            const sessionRecord = student.attendanceHistory.find(
-                record => record.sessionId === currentSessionId
-            );
-            if (sessionRecord) {
-                attendanceDataForCurrentSession.push({
-                    id: student.id,
-                    name: student.name,
-                    program: student.program,
-                    status: sessionRecord.status
-                });
-            }
-        });
+        prepareSessionRoster(selectedClass);
+
+        await saveStudentsDB();
 
         sessionSettings.classList.add('hidden');
         attendanceCapture.classList.remove('hidden');
@@ -960,10 +1191,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update session info display
         const sessionInfo = document.getElementById('current-session-info');
         if (sessionInfo) {
-            sessionInfo.textContent = `${currentCourse} - ${currentSemester} at ${currentClassTimeStr}`;
+            sessionInfo.textContent = `${currentClassName} at ${currentClassTimeStr}`;
         }
         
-        showPermissionModal(`Session for ${currentCourse} (${currentSemester}) at ${currentClassTimeStr} started.`, 'info');
+        showPermissionModal(`Session for ${currentClassName} at ${currentClassTimeStr} started.`, 'info');
     });
 
     scanQrBtn.addEventListener('click', () => {
@@ -1010,13 +1241,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (exportOption === 'current') {
             // Export current session only
-            if (!currentCourse || attendanceDataForCurrentSession.length === 0) {
-                alert('No attendance data for current session to export.');
+            if (!currentClassId || attendanceDataForCurrentSession.length === 0) {
+                alert('No attendance data for the current session to export.');
                 return;
             }
             
             csv = generateCurrentSessionCSV();
-            const filename = `USM_Attendance_${currentCourse.replace(/\s/g, '_')}_${currentSemester.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+            const classLabel = currentClassName ? currentClassName.replace(/\s/g, '_') : 'Class';
+            const filename = `USM_Attendance_${classLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
             downloadCSV(csv, filename);
             
         } else if (exportOption === 'all') {
@@ -1026,28 +1258,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             csv = generateSubjectCSV(exportOption);
             if (csv) {
-                const [course, semester] = exportOption.split(' - ');
-                downloadCSV(csv, `USM_Attendance_${course.replace(/\s/g, '_')}_${semester.replace(/\s/g, '_')}.csv`);
+                const classRecord = findClassById(exportOption);
+                const classLabel = classRecord ? classRecord.name : exportOption;
+                downloadCSV(csv, `USM_Attendance_${classLabel.replace(/\s/g, '_')}.csv`);
             }
         }
     });
     
     function generateCurrentSessionCSV() {
-        let csv = `University of Southern Mindanao\n`;
-        csv += `Attendance Report for ${currentCourse} (${currentSemester})\n`;
-        csv += `Class Time: ${currentClassTimeStr}\n`;
-        csv += `Report Generated: ${new Date().toLocaleString()}\n\n`;
-        
-        const totalStudents = studentsDB.length;
+        const classLabel = currentClassName || 'Unassigned Class';
+        const generatedAt = new Date().toLocaleString();
+
         const presentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Present').length;
         const lateStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Late').length;
-        const absentStudents = totalStudents - presentStudents - lateStudents;
+        const absentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Absent').length;
+        const totalStudents = attendanceDataForCurrentSession.length;
+        const attendedStudents = presentStudents + lateStudents;
+
+        let csv = `University of Southern Mindanao\n`;
+        csv += `Attendance Report for ${classLabel}\n`;
+        csv += `Class Time: ${currentClassTimeStr}\n`;
+        csv += `Report Generated: ${generatedAt}\n\n`;
         
         csv += `SUMMARY\n`;
         csv += `Total Students: ${totalStudents}\n`;
         csv += `Present: ${presentStudents}\n`;
         csv += `Late: ${lateStudents}\n`;
-        csv += `Absent: ${absentStudents}\n\n`;
+        csv += `Absent: ${absentStudents}\n`;
+        csv += `Attendance Rate: ${totalStudents > 0 ? Math.round((attendedStudents / totalStudents) * 100) : 0}%\n\n`;
         
         csv += `DETAILED ATTENDANCE\n`;
         csv += `Student ID,Full Name,Program,Status,Timestamp\n`;
@@ -1055,9 +1293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         attendanceDataForCurrentSession.forEach(sessionRecord => {
             const student = studentsDB.find(s => s.id === sessionRecord.id);
             if (student) {
-                const record = student.attendanceHistory.find(
-                    r => r.sessionId === currentSessionId
-                );
+                const record = (student.attendanceHistory || []).find(r => r.sessionId === currentSessionId);
                 if (record) {
                     csv += `"${student.id}","${student.name}","${student.program}","${sessionRecord.status}","${record.timestamp}"\n`;
                 }
@@ -1072,25 +1308,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         csv += `Complete Attendance Report\n`;
         csv += `Report Generated: ${new Date().toLocaleString()}\n\n`;
         
-        const subjects = {};
+        const classes = {};
         studentsDB.forEach(student => {
-            student.attendanceHistory.forEach(record => {
-                if (!record.course) return;
-                
-                const key = `${record.course} - ${record.semester}`;
-                if (!subjects[key]) {
-                    subjects[key] = {
+            (student.attendanceHistory || []).forEach(record => {
+                const classId = record.classId || student.classId;
+                if (!classId) return;
+
+                const className = record.className || student.className || classId;
+
+                if (!classes[classId]) {
+                    classes[classId] = {
+                        name: className,
                         students: new Set(),
                         present: 0,
                         late: 0,
+                        absent: 0,
                         records: []
                     };
                 }
                 
-                subjects[key].students.add(student.id);
-                if (record.status === 'Present') subjects[key].present++;
-                if (record.status === 'Late') subjects[key].late++;
-                subjects[key].records.push({
+                const classData = classes[classId];
+                classData.students.add(student.id);
+
+                if (record.status === 'Present') classData.present++;
+                if (record.status === 'Late') classData.late++;
+                if (record.status === 'Absent') classData.absent++;
+
+                classData.records.push({
                     studentId: student.id,
                     name: student.name,
                     program: student.program,
@@ -1101,69 +1345,73 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
         
-        for (const [subject, data] of Object.entries(subjects)) {
-            const [course, semester] = subject.split(' - ');
-            
-            csv += `\nSUBJECT: ${course} (${semester})\n`;
-            csv += `Total Students: ${data.students.size}\n`;
-            csv += `Total Present: ${data.present}\n`;
-            csv += `Total Late: ${data.late}\n`;
-            csv += `Total Sessions: ${data.records.length}\n\n`;
-            
-            csv += `Student ID,Full Name,Program,Status,Class Time,Timestamp\n`;
-            data.records.forEach(record => {
-                csv += `"${record.studentId}","${record.name}","${record.program}","${record.status}","${record.classTime}","${record.timestamp}"\n`;
+        Object.values(classes)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(classData => {
+                const totalSessions = classData.records.length;
+                csv += `\nCLASS: ${classData.name}\n`;
+                csv += `Total Students: ${classData.students.size}\n`;
+                csv += `Total Present: ${classData.present}\n`;
+                csv += `Total Late: ${classData.late}\n`;
+                csv += `Total Absent: ${classData.absent}\n`;
+                csv += `Total Entries: ${totalSessions}\n\n`;
+                
+                csv += `Student ID,Full Name,Program,Status,Class Time,Timestamp\n`;
+                classData.records.forEach(record => {
+                    csv += `"${record.studentId}","${record.name}","${record.program}","${record.status}","${record.classTime || ''}","${record.timestamp || ''}"\n`;
+                });
             });
-        }
         
         return csv;
     }
     
-    function generateSubjectCSV(exportOption) {
-        const [course, semester] = exportOption.split(' - ');
-        
+    function generateSubjectCSV(classId) {
+        const classDetails = findClassById(classId);
+        const classLabel = classDetails ? classDetails.name : classId;
+
         const subjectRecords = [];
         const subjectStudents = new Set();
         let subjectPresent = 0;
         let subjectLate = 0;
+        let subjectAbsent = 0;
         
         studentsDB.forEach(student => {
-            student.attendanceHistory
-                .filter(record => record.course === course && record.semester === semester)
+            (student.attendanceHistory || [])
+                .filter(record => record.classId === classId)
                 .forEach(record => {
                     subjectStudents.add(student.id);
                     if (record.status === 'Present') subjectPresent++;
                     if (record.status === 'Late') subjectLate++;
+                    if (record.status === 'Absent') subjectAbsent++;
                     subjectRecords.push({
                         studentId: student.id,
                         name: student.name,
                         program: student.program,
                         status: record.status,
                         classTime: record.classTime,
-                        timestamp: record.timestamp,
-                        presentCount: student.presentCount || 0,
-                        lateCount: student.lateCount || 0
+                        timestamp: record.timestamp
                     });
                 });
         });
         
         if (subjectRecords.length === 0) {
-            alert(`No attendance records found for ${exportOption}`);
+            alert(`No attendance records found for ${classLabel}`);
             return null;
         }
         
         let csv = `University of Southern Mindanao\n`;
-        csv += `Attendance Report for ${course} (${semester})\n`;
+        csv += `Attendance Report for ${classLabel}\n`;
         csv += `Report Generated: ${new Date().toLocaleString()}\n\n`;
         
         csv += `SUMMARY\n`;
         csv += `Total Students: ${subjectStudents.size}\n`;
         csv += `Total Present: ${subjectPresent}\n`;
         csv += `Total Late: ${subjectLate}\n`;
-        csv += `Total Sessions: ${subjectRecords.length}\n\n`;
+        csv += `Total Absent: ${subjectAbsent}\n`;
+        csv += `Total Entries: ${subjectRecords.length}\n\n`;
         
         csv += `STUDENT SUMMARY\n`;
-        csv += `Student ID,Full Name,Program,Total Present,Total Late\n`;
+        csv += `Student ID,Full Name,Program,Total Present,Total Late,Total Absent\n`;
         
         const studentSummaries = {};
         subjectRecords.forEach(record => {
@@ -1172,22 +1420,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     name: record.name,
                     program: record.program,
                     present: 0,
-                    late: 0
+                    late: 0,
+                    absent: 0
                 };
             }
             if (record.status === 'Present') studentSummaries[record.studentId].present++;
             if (record.status === 'Late') studentSummaries[record.studentId].late++;
+            if (record.status === 'Absent') studentSummaries[record.studentId].absent++;
         });
         
         Object.entries(studentSummaries).forEach(([studentId, summary]) => {
-            csv += `"${studentId}","${summary.name}","${summary.program}","${summary.present}","${summary.late}"\n`;
+            csv += `"${studentId}","${summary.name}","${summary.program}","${summary.present}","${summary.late}","${summary.absent}"\n`;
         });
         
         csv += `\nDETAILED ATTENDANCE\n`;
         csv += `Student ID,Full Name,Program,Status,Class Time,Timestamp\n`;
         
         subjectRecords.forEach(record => {
-            csv += `"${record.studentId}","${record.name}","${record.program}","${record.status}","${record.classTime}","${record.timestamp}"\n`;
+            csv += `"${record.studentId}","${record.name}","${record.program}","${record.status}","${record.classTime || ''}","${record.timestamp || ''}"\n`;
         });
         
         return csv;

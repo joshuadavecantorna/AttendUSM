@@ -203,6 +203,11 @@ input:focus, select:focus {
     color: var(--danger);
 }
 
+.status-absent {
+    background-color: rgba(127, 140, 141, 0.2);
+    color: #7f8c8d;
+}
+
 /* Student List */
 .student-list {
     list-style: none;

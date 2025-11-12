@@ -174,8 +174,12 @@
                     <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Present</div>
                 </div>
                 <div class="card" style="text-align: center; padding: 1.25rem;">
-                    <div style="font-size: 2rem; font-weight: 700; color: var(--danger);" id="late-count">0</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="late-count">0</div>
                     <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Late</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.25rem;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--danger);" id="absent-count">0</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">Absent</div>
                 </div>
                 <div class="card" style="text-align: center; padding: 1.25rem;">
                     <div style="font-size: 2rem; font-weight: 700; color: var(--text);" id="total-count">0</div>
@@ -215,29 +219,15 @@
                 
                 <div class="session-form-grid">
                     <div class="form-group-modern">
-                        <label for="course" class="form-label-modern">
+                        <label for="class-select" class="form-label-modern">
                             <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                             </svg>
-                            Course Code
+                            Class
                         </label>
-                        <input type="text" id="course" class="input-modern" placeholder="Course code (e.g., CS 101)" required />
-                    </div>
-                    <div class="form-group-modern">
-                        <label for="semester" class="form-label-modern">
-                            <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            Semester Period
-                        </label>
-                        <select id="semester" class="input-modern" required>
-                            <option value="">Select semester</option>
-                            <option value="1st Sem Midterm">1st Sem Midterm</option>
-                            <option value="1st Sem Final">1st Sem Final</option>
-                            <option value="2nd Sem Midterm">2nd Sem Midterm</option>
-                            <option value="2nd Sem Final">2nd Sem Final</option>
+                        <select id="class-select" class="input-modern" required>
+                            <option value="">Select class</option>
                         </select>
                     </div>
                     <div class="form-group-modern">
@@ -277,13 +267,6 @@
                             <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
                         </svg>
                         Scan NFC Card
-                    </button>
-                    <button id="manual-entry-btn" class="btn btn-outline" style="flex: 1; min-width: 140px;">
-                        <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        Manual Entry
                     </button>
                 </div>
 
