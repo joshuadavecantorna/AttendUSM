@@ -19,7 +19,6 @@
     }
 
     function showWelcomeScreen(currentUser) {
-    function showWelcomeScreen(currentUser) {
         document.getElementById('auth-section').style.display = 'none';
         const welcomeSection = document.createElement('div');
         welcomeSection.id = 'welcome-section';
@@ -146,10 +145,25 @@
                 nfcReader = new NDEFReader();
                 await nfcReader.scan();
                 
-                nfcReader.addEventListener('reading', ({ message }) => {
-                    const decoder = new TextDecoder();
-                    const data = decoder.decode(message.records[0].data);
-                    handleNFCData(data);
+                nfcReader.addEventListener('reading', async (event) => {
+                    // Get NFC tag serial number as ID
+                    let nfcId = '';
+                    if (event.serialNumber) {
+                        nfcId = event.serialNumber;
+                    } else {
+                        // Fallback: try to read data from tag
+                        try {
+                            const decoder = new TextDecoder();
+                            const data = decoder.decode(event.message.records[0].data);
+                            nfcId = data;
+                        } catch (e) {
+                            console.error('Could not read NFC data:', e);
+                            nfcStatus.textContent = 'Error: Could not read NFC tag.';
+                            return;
+                        }
+                    }
+                    
+                    await handleNFCData(nfcId);
                 });
 
                 nfcModal.classList.add('active');
@@ -171,23 +185,43 @@
         nfcModal.classList.remove('active');
     }
 
-    function handleNFCData(data) {
-        const [fullName, course] = data.split(',');
-        if (fullName && course) {
-            console.log('NFC Login:', { fullName, course });
-            const userData = {
-                name: fullName,
-                course: course,
-                loginMethod: 'nfc'
-            };
-            
-            // Store in localStorage for compatibility
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            window.location.reload();
-        } else {
-            alert('Invalid NFC data format');
+    async function handleNFCData(nfcId) {
+        if (!dbReady) {
+            nfcStatus.textContent = 'Database not ready. Please try again.';
+            return;
         }
-        stopNfcReader();
+        
+        try {
+            // Look up NFC tag in IndexedDB registry
+            const nfcTag = await attendanceDB.getNFCTag(nfcId);
+            
+            if (nfcTag) {
+                // NFC tag found in registry
+                console.log('NFC Login:', nfcTag);
+                const userData = {
+                    name: nfcTag.name,
+                    course: nfcTag.course,
+                    loginMethod: 'nfc'
+                };
+                
+                // Store in localStorage for compatibility
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                stopNfcReader();
+                window.location.reload();
+            } else {
+                // NFC tag not registered
+                nfcStatus.textContent = 'NFC tag not registered. Please register first in the attendance system.';
+                setTimeout(() => {
+                    nfcStatus.textContent = 'Ready to scan. Please tap your ID card.';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error handling NFC data:', error);
+            nfcStatus.textContent = 'Error processing NFC tag. Please try again.';
+            setTimeout(() => {
+                nfcStatus.textContent = 'Ready to scan. Please tap your ID card.';
+            }, 3000);
+        }
     }
 
     // Event Listeners
