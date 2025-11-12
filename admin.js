@@ -383,12 +383,22 @@
             return;
         }
 
+        // Verify database is accessible
+        if (!attendanceDB.db) {
+            showNotification('Database connection lost. Please refresh the page.', 'error');
+            return;
+        }
+
         const timestamp = new Date().toISOString();
         const classId = editingClassId || generateClassId(className);
         let existingClass = null;
 
         if (editingClassId) {
-            existingClass = await attendanceDB.getClass(editingClassId);
+            try {
+                existingClass = await attendanceDB.getClass(editingClassId);
+            } catch (err) {
+                console.warn('Could not load existing class:', err);
+            }
         }
 
         const classStudents = tempClassStudents.map(student => ({
@@ -406,20 +416,50 @@
         };
 
         try {
-            await attendanceDB.addClass(classRecord);
+            // Verify classes store exists
+            if (!attendanceDB.db.objectStoreNames.contains('classes')) {
+                showNotification('Classes store not found. Please refresh the page to initialize the database.', 'error');
+                return;
+            }
 
+            // Save the class first
+            await attendanceDB.addClass(classRecord);
+            console.log('Class saved successfully:', classRecord);
+
+            // Update students with class information (don't fail if student update fails)
+            const studentUpdateErrors = [];
             for (const student of classStudents) {
-                await attendanceDB.addStudent({
-                    id: student.id,
-                    name: student.name,
-                    program: student.program,
-                    classId: classId,
-                    className: className,
-                    presentCount: student.presentCount || 0,
-                    lateCount: student.lateCount || 0,
-                    absentCount: student.absentCount || 0,
-                    attendanceHistory: student.attendanceHistory || []
-                });
+                try {
+                    // Get existing student if it exists
+                    const existingStudent = await attendanceDB.getStudent(student.id);
+                    
+                    // Merge with existing data, preserving owner if it exists
+                    const studentData = {
+                        id: student.id,
+                        name: student.name,
+                        program: student.program,
+                        classId: classId,
+                        className: className,
+                        presentCount: student.presentCount || existingStudent?.presentCount || 0,
+                        lateCount: student.lateCount || existingStudent?.lateCount || 0,
+                        absentCount: student.absentCount || existingStudent?.absentCount || 0,
+                        attendanceHistory: student.attendanceHistory || existingStudent?.attendanceHistory || []
+                    };
+                    
+                    // Preserve owner if it exists on the existing student
+                    if (existingStudent?.owner) {
+                        studentData.owner = existingStudent.owner;
+                    }
+                    
+                    await attendanceDB.addStudent(studentData);
+                } catch (studentError) {
+                    console.warn(`Failed to update student ${student.id}:`, studentError);
+                    studentUpdateErrors.push(student.id);
+                }
+            }
+
+            if (studentUpdateErrors.length > 0) {
+                console.warn('Some students could not be updated:', studentUpdateErrors);
             }
 
             showNotification(editingClassId ? 'Class updated successfully!' : 'Class created successfully!', 'success');
@@ -428,7 +468,8 @@
             await renderStudents();
         } catch (error) {
             console.error('Error saving class:', error);
-            showNotification('Failed to save class. Please try again.', 'error');
+            const errorMessage = error.message || error.toString() || 'Unknown error';
+            showNotification(`Failed to save class: ${errorMessage}`, 'error');
         }
     }
 
