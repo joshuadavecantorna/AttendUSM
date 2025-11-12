@@ -1334,6 +1334,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Check if Quick Attendance is selected
+        if (selectedClassId === 'QUICK_ATTENDANCE') {
+            // Quick Attendance mode - no class required
+            currentClassId = 'QUICK_ATTENDANCE';
+            currentClassName = 'Quick Attendance';
+            currentClassTimeStr = timeInput;
+
+            const now = new Date();
+            const [hours, minutes] = timeInput.split(':').map(Number);
+            classStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+            currentSessionId = `QUICK-${now.toISOString().slice(0, 10)}-${timeInput.replace(':', '')}`;
+
+            // Clear previous session data
+            attendanceDataForCurrentSession = [];
+
+            await saveStudentsDB();
+
+            sessionSettings.classList.add('hidden');
+            attendanceCapture.classList.remove('hidden');
+            attendanceDisplay.classList.remove('hidden');
+            updateStatusCounters();
+            refreshStudentListUI();
+            
+            // Update session info display
+            const sessionInfo = document.getElementById('current-session-info');
+            if (sessionInfo) {
+                sessionInfo.textContent = `⚡ Quick Attendance at ${currentClassTimeStr}`;
+            }
+            
+            showPermissionModal(`Quick Attendance session started at ${currentClassTimeStr}. Scan QR codes to record attendance.`, 'info');
+            return;
+        }
+
+        // Regular class-based attendance
         const selectedClass = findClassById(selectedClassId);
 
         if (!selectedClass) {
