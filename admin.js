@@ -316,6 +316,134 @@
         window.location.href = 'index.html';
     });
 
+    // Export to JSON file
+    document.getElementById('export-json-btn').addEventListener('click', () => {
+        try {
+            // Get all student data from localStorage
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                version: '1.0',
+                students: {}
+            };
+
+            // Collect all student databases
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                
+                if (key && key.startsWith('allStudents_')) {
+                    const owner = key.replace('allStudents_', '');
+                    const students = JSON.parse(localStorage.getItem(key));
+                    exportData.students[owner] = students;
+                }
+            }
+
+            // Also include NFC registry if it exists
+            const nfcRegistry = localStorage.getItem('nfcRegistry');
+            if (nfcRegistry) {
+                exportData.nfcRegistry = JSON.parse(nfcRegistry);
+            }
+
+            // Convert to JSON string
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // Create blob and download
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `USM_Students_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showNotification('Student data exported successfully!', 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            showNotification('Error exporting data: ' + error.message, 'error');
+        }
+    });
+
+    // Import from JSON file
+    document.getElementById('import-json-btn').addEventListener('click', () => {
+        document.getElementById('import-file-input').click();
+    });
+
+    document.getElementById('import-file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            showNotification('Please select a valid JSON file', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importData = JSON.parse(event.target.result);
+
+                // Validate data structure
+                if (!importData.students) {
+                    throw new Error('Invalid backup file format');
+                }
+
+                // Confirm before importing
+                const studentCount = Object.values(importData.students).reduce((sum, arr) => sum + arr.length, 0);
+                if (!confirm(`This will import ${studentCount} students. Current data will be merged. Continue?`)) {
+                    e.target.value = ''; // Reset file input
+                    return;
+                }
+
+                // Import student databases
+                let importedCount = 0;
+                for (const [owner, students] of Object.entries(importData.students)) {
+                    const key = `allStudents_${owner}`;
+                    
+                    // Get existing students
+                    const existing = JSON.parse(localStorage.getItem(key)) || [];
+                    
+                    // Merge: avoid duplicates based on student ID
+                    const existingIds = new Set(existing.map(s => s.id));
+                    const newStudents = students.filter(s => !existingIds.has(s.id));
+                    
+                    // Save merged data
+                    const merged = [...existing, ...newStudents];
+                    localStorage.setItem(key, JSON.stringify(merged));
+                    importedCount += newStudents.length;
+                }
+
+                // Import NFC registry if present
+                if (importData.nfcRegistry) {
+                    const existingNFC = JSON.parse(localStorage.getItem('nfcRegistry')) || {};
+                    const mergedNFC = { ...existingNFC, ...importData.nfcRegistry };
+                    localStorage.setItem('nfcRegistry', JSON.stringify(mergedNFC));
+                }
+
+                // Refresh display
+                renderStudents();
+                showNotification(`Successfully imported ${importedCount} new students!`, 'success');
+                
+                // Reset file input
+                e.target.value = '';
+            } catch (error) {
+                console.error('Import error:', error);
+                showNotification('Error importing data: ' + error.message, 'error');
+                e.target.value = '';
+            }
+        };
+
+        reader.onerror = () => {
+            showNotification('Error reading file', 'error');
+            e.target.value = '';
+        };
+
+        reader.readAsText(file);
+    });
+
+    // Auto-save to localStorage (already implemented through save functions)
+    // The system automatically saves to localStorage whenever changes are made
+
     // Show notification
     function showNotification(message, type = 'success') {
         const notification = document.createElement('div');

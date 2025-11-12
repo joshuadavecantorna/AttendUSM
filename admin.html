@@ -119,14 +119,50 @@
                             Logged in as: <span style="color: var(--primary); font-weight: 600;">admin@gmail.com</span>
                         </p>
                     </div>
-                    <button id="admin-logout-btn" class="btn btn-outline" style="padding: 0.5rem 1.5rem;">
-                        <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        Logout
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button id="export-json-btn" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                            <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export Data
+                        </button>
+                        <button id="import-json-btn" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                            <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Import Data
+                        </button>
+                        <button id="admin-logout-btn" class="btn btn-outline" style="padding: 0.5rem 1.5rem;">
+                            <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden file input for import -->
+                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
+                <!-- Info Banner -->
+                <div style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0.05)); border-left: 4px solid var(--primary); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                    <svg style="width: 24px; height: 24px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div style="flex: 1;">
+                        <p style="margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.5;">
+                            <strong>Auto-Save Enabled:</strong> All student data is automatically saved to browser's localStorage. 
+                            Use <strong>Export Data</strong> to create a backup JSON file, and <strong>Import Data</strong> to restore from backup.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Add Student Form -->
