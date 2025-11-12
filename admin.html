@@ -10,6 +10,90 @@
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Admin Panel Responsive Styles */
+        .admin-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+        
+        .admin-search-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        #search-student {
+            width: 250px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100% !important;
+                margin: 1rem !important;
+                padding: 1rem !important;
+            }
+            
+            .admin-form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .admin-search-controls {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            #search-student {
+                width: 100%;
+            }
+            
+            .admin-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            
+            /* Make table scrollable on mobile */
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 0.5rem !important;
+            }
+            
+            /* Hide Student ID column on very small screens */
+            @media (max-width: 576px) {
+                th:first-child,
+                td:first-child {
+                    display: none;
+                }
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .logo img {
+                width: 60px !important;
+            }
+            
+            .logo h3 {
+                font-size: 1.1rem !important;
+            }
+            
+            .logo p {
+                font-size: 0.85rem !important;
+            }
+            
+            h2 {
+                font-size: 1.2rem !important;
+            }
+            
+            h3 {
+                font-size: 1rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container fade-in" style="max-width: 900px;">
@@ -22,7 +106,7 @@
         <!-- Admin Dashboard -->
         <div id="admin-section">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div class="admin-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <h2 style="margin: 0; color: var(--primary);">
                             <svg style="width: 28px; height: 28px; vertical-align: text-bottom; margin-right: 8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -55,16 +139,16 @@
                         </svg>
                         Add New Student
                     </h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="admin-form-grid">
                         <div class="form-group" style="margin: 0;">
                             <label for="student-name">Student Name</label>
-                            <input type="text" id="student-name" placeholder="Enter full name" style="width: 100%;">
+                            <input type="text" id="student-name" placeholder="e.g., JUAN DELA CRUZ" style="width: 100%;">
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label for="student-course">Course/Program</label>
-                            <input type="text" id="student-course" placeholder="e.g., BSIT, BSCS" style="width: 100%;">
+                            <input type="text" id="student-course" placeholder="e.g., BSIT, BSCS, BSED" style="width: 100%;">
                         </div>
-                        <button id="add-student-btn" class="btn btn-primary" style="padding: 12px 2rem;">
+                        <button id="add-student-btn" class="btn btn-primary" style="padding: 12px 2rem; white-space: nowrap;">
                             <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -80,8 +164,8 @@
                         <h3 style="margin: 0; color: var(--text); font-size: 1.1rem;">
                             All Students (<span id="student-count">0</span>)
                         </h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="search-student" placeholder="Search by name or course..." style="padding: 0.5rem 1rem; width: 250px; font-size: 0.9rem;">
+                        <div class="admin-search-controls">
+                            <input type="text" id="search-student" placeholder="Search student name or course..." style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                             <button id="refresh-list-btn" class="btn btn-outline" style="padding: 0.5rem 1rem;">
                                 <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -130,11 +214,11 @@
                 <h3 style="margin: 0 0 1.5rem; color: var(--primary);">Edit Student</h3>
                 <div class="form-group">
                     <label for="edit-student-name">Student Name</label>
-                    <input type="text" id="edit-student-name" placeholder="Enter full name">
+                    <input type="text" id="edit-student-name" placeholder="e.g., JUAN DELA CRUZ">
                 </div>
                 <div class="form-group">
                     <label for="edit-student-course">Course/Program</label>
-                    <input type="text" id="edit-student-course" placeholder="e.g., BSIT, BSCS">
+                    <input type="text" id="edit-student-course" placeholder="e.g., BSIT, BSCS, BSED">
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button id="save-edit-btn" class="btn btn-primary" style="flex: 1;">
