@@ -115,8 +115,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadClassesDB() {
         try {
-            if (!loggedInUser || !dbReady) return [];
+            if (!loggedInUser) {
+                console.log('No logged in user, skipping class load');
+                return [];
+            }
+            
+            // Wait for database to be ready if not already
+            if (!dbReady) {
+                console.log('Database not ready, waiting...');
+                await new Promise((resolve) => {
+                    const checkReady = setInterval(() => {
+                        if (dbReady || attendanceDB.db) {
+                            clearInterval(checkReady);
+                            resolve();
+                        }
+                    }, 100);
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        clearInterval(checkReady);
+                        resolve();
+                    }, 5000);
+                });
+            }
+            
+            if (!attendanceDB.db) {
+                console.error('Database connection not available');
+                return [];
+            }
+            
             const classes = await attendanceDB.getAllClasses();
+            console.log('Loaded classes:', classes.length, classes);
             return Array.isArray(classes) ? classes : [];
         } catch (error) {
             console.error('Error loading classes:', error);
@@ -125,17 +153,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateClassSelectOptions() {
-        if (!classSelect) return;
+        if (!classSelect) {
+            console.warn('Class select element not found');
+            return;
+        }
 
         const previousSelection = classSelect.value;
         classSelect.innerHTML = '';
 
+        console.log('Updating class select with', classesDB.length, 'classes');
+
         if (!classesDB.length) {
             const option = document.createElement('option');
             option.value = '';
-            option.textContent = 'No classes available';
+            option.textContent = 'No classes available - Click refresh to reload';
             classSelect.appendChild(option);
-            classSelect.disabled = true;
+            classSelect.disabled = false; // Keep enabled so user can see the message
             return;
         }
 
@@ -146,7 +179,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         placeholder.textContent = 'Select class';
         classSelect.appendChild(placeholder);
 
+        classesDB.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        
         classesDB.forEach(cls => {
+            if (!cls || !cls.classId || !cls.name) {
+                console.warn('Invalid class data:', cls);
+                return;
+            }
             const option = document.createElement('option');
             option.value = cls.classId;
             option.textContent = cls.name;
@@ -335,12 +374,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- UI State Management Functions ---
-    if (loggedInUser) {
+    async function initializeUserSession() {
+        if (!loggedInUser) {
+            showAuthSection();
+            return;
+        }
+        
+        // Ensure database is ready
+        if (!dbReady) {
+            await attendanceDB.init().then(() => {
+                dbReady = true;
+                console.log('IndexedDB initialized for attendance system');
+            }).catch(error => {
+                console.error('Failed to initialize IndexedDB:', error);
+            });
+        }
+        
         studentsDB = await loadStudentsDB();
         classesDB = await loadClassesDB();
         updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
+    }
+    
+    // Initialize on page load
+    if (loggedInUser) {
+        await initializeUserSession();
     } else {
         showAuthSection();
     }
@@ -477,8 +536,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         loggedInUser = username;
         localStorage.setItem('loggedInUser', loggedInUser);
+        
+        // Ensure database is ready before loading data
+        if (!dbReady) {
+            await attendanceDB.init().then(() => {
+                dbReady = true;
+                console.log('IndexedDB initialized after login');
+            }).catch(error => {
+                console.error('Failed to initialize IndexedDB:', error);
+            });
+        }
+        
         studentsDB = await loadStudentsDB();
         classesDB = await loadClassesDB();
+        console.log('Classes loaded after login:', classesDB.length);
         updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
@@ -1151,6 +1222,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         showAuthSection();
         stopQrScanner();
     });
+
+    // Refresh classes button
+    const refreshClassesBtn = document.getElementById('refresh-classes-btn');
+    if (refreshClassesBtn) {
+        refreshClassesBtn.addEventListener('click', async () => {
+            console.log('Refreshing classes...');
+            if (!dbReady && attendanceDB.db) {
+                dbReady = true;
+            }
+            classesDB = await loadClassesDB();
+            console.log('Classes refreshed:', classesDB.length);
+            updateClassSelectOptions();
+            if (classesDB.length > 0) {
+                showPermissionModal(`Loaded ${classesDB.length} class(es)`, 'info');
+            } else {
+                showPermissionModal('No classes found. Make sure classes are created in the admin panel.', 'error');
+            }
+        });
+    }
 
     startSessionBtn.addEventListener('click', async () => {
         const selectedClassId = classSelect ? classSelect.value : '';
