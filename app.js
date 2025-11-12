@@ -96,7 +96,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function saveStudentsDB() {
         try {
-            if (!loggedInUser || !dbReady) return;
+            if (!loggedInUser || !dbReady) {
+                console.warn('Cannot save: loggedInUser=', loggedInUser, 'dbReady=', dbReady);
+                return;
+            }
+            
+            console.log('Saving', studentsDB.length, 'students to IndexedDB...');
             
             // Save each student to IndexedDB
             for (const student of studentsDB) {
@@ -105,6 +110,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     owner: loggedInUser
                 });
             }
+            
+            console.log('✅ Successfully saved students to IndexedDB');
             
             // Trigger auto-backup for attendance data
             await autoBackupAttendanceData();
@@ -1064,6 +1071,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Core ID Processing Logic ---
     async function processScannedId(scannedData) {
+        console.log('🔍 Processing scanned data:', scannedData);
+        
         // Parse QR code format: "FULL NAME,COURSE,,"
         const parts = scannedData.split(',');
         if (parts.length < 2) {
@@ -1073,6 +1082,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const studentName = parts[0].trim();
         const studentCourse = parts[1].trim();
+        
+        console.log('👤 Student:', studentName, '| Course:', studentCourse);
         
         if (!studentName || !studentCourse) {
             showPermissionModal('Invalid QR code data. Name and course are required.', 'error');
@@ -1092,6 +1103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             showPermissionModal('Session not started. Please select a class and start the session.', 'error');
             return;
         }
+        
+        console.log('📋 Current Session:', currentSessionId, '| Class:', currentClassName);
 
         // Generate unique ID from name
         const id = studentName.replace(/\s+/g, '_').toUpperCase();
