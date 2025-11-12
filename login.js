@@ -1,8 +1,25 @@
 // Login page QR/NFC functionality
 (function(){
-    // Check for existing login
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (currentUser) {
+    // Wait for IndexedDB to initialize
+    let dbReady = false;
+    attendanceDB.init().then(() => {
+        dbReady = true;
+        console.log('IndexedDB initialized for login');
+        checkExistingLogin();
+    }).catch(error => {
+        console.error('Failed to initialize IndexedDB:', error);
+    });
+
+    // Check for existing login from localStorage (for compatibility)
+    async function checkExistingLogin() {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser) {
+            showWelcomeScreen(currentUser);
+        }
+    }
+
+    function showWelcomeScreen(currentUser) {
+    function showWelcomeScreen(currentUser) {
         document.getElementById('auth-section').style.display = 'none';
         const welcomeSection = document.createElement('div');
         welcomeSection.id = 'welcome-section';
@@ -101,37 +118,16 @@
         const [fullName, course] = data.split(',');
         if (fullName && course) {
             console.log('QR Login:', { fullName, course });
-            localStorage.setItem('currentUser', JSON.stringify({
+            const userData = {
                 name: fullName,
                 course: course,
                 loginMethod: 'qr'
-            }));
+            };
             
-            document.getElementById('auth-section').style.display = 'none';
+            // Store in localStorage for compatibility
+            localStorage.setItem('currentUser', JSON.stringify(userData));
             
-            const welcomeSection = document.createElement('div');
-            welcomeSection.id = 'welcome-section';
-            welcomeSection.innerHTML = `
-                <div class="card" style="text-align:center;padding:2rem;">
-                    <div style="width:80px;height:80px;margin:0 auto 1.5rem;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                            <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-                        </svg>
-                    </div>
-                    <h2 style="margin:0 0 0.5rem;color:var(--primary);">Welcome, ${fullName}!</h2>
-                    <p style="margin:0 0 1.5rem;color:var(--text-light);">${course}</p>
-                    <div style="max-width:300px;margin:0 auto;">
-                        <button onclick="showAttendanceDashboard()" class="btn btn-primary btn-block">
-                            Go to Attendance Dashboard
-                        </button>
-                        <button onclick="handleLogout()" class="btn btn-outline btn-block" style="margin-top:0.75rem;">
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.querySelector('.container').appendChild(welcomeSection);
+            showWelcomeScreen(userData);
         } else {
             alert('Invalid QR code format');
         }
@@ -179,11 +175,14 @@
         const [fullName, course] = data.split(',');
         if (fullName && course) {
             console.log('NFC Login:', { fullName, course });
-            localStorage.setItem('currentUser', JSON.stringify({
+            const userData = {
                 name: fullName,
                 course: course,
                 loginMethod: 'nfc'
-            }));
+            };
+            
+            // Store in localStorage for compatibility
+            localStorage.setItem('currentUser', JSON.stringify(userData));
             window.location.reload();
         } else {
             alert('Invalid NFC data format');

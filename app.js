@@ -1,4 +1,14 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize IndexedDB
+    let dbReady = false;
+    await attendanceDB.init().then(() => {
+        dbReady = true;
+        console.log('IndexedDB initialized for attendance system');
+    }).catch(error => {
+        console.error('Failed to initialize IndexedDB:', error);
+        alert('Database initialization failed. Please refresh the page.');
+    });
+
     // --- DOM Element References ---
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -48,12 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const recentScanCache = new Map();
 
     // --- Local Storage Helper Functions ---
-    function loadStudentsDB() {
+    async function loadStudentsDB() {
         try {
-            if (!loggedInUser) return [];
-            const stored = localStorage.getItem(`allStudents_${loggedInUser}`);
-            const parsed = stored ? JSON.parse(stored) : [];
-            return parsed.map(student => ({
+            if (!loggedInUser || !dbReady) return [];
+            const students = await attendanceDB.getStudentsByOwner(loggedInUser);
+            return students.map(student => ({
                 ...student,
                 attendanceHistory: (student.attendanceHistory || []).map(record => {
                     if (typeof record.isLate !== 'undefined') {
@@ -75,18 +84,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function saveStudentsDB() {
+    async function saveStudentsDB() {
         try {
-            if (!loggedInUser) return;
-            localStorage.setItem(`allStudents_${loggedInUser}`, JSON.stringify(studentsDB));
+            if (!loggedInUser || !dbReady) return;
+            
+            // Save each student to IndexedDB
+            for (const student of studentsDB) {
+                await attendanceDB.addStudent({
+                    ...student,
+                    owner: loggedInUser
+                });
+            }
+            
+            // Trigger auto-backup for attendance data
+            await autoBackupAttendanceData();
         } catch (e) {
             console.error("Error saving studentsDB:", e);
         }
     }
 
+    // Auto-backup attendance data
+    function autoBackupAttendanceData() {
+        try {
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                version: '1.0',
+                students: {}
+            };
+
+            // Collect all student databases
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                
+                if (key && key.startsWith('allStudents_')) {
+                    const owner = key.replace('allStudents_', '');
+                    const students = JSON.parse(localStorage.getItem(key));
+                    exportData.students[owner] = students;
+                }
+            }
+
+            // Include NFC registry
+            const nfcRegistry = localStorage.getItem('nfcRegistry');
+            if (nfcRegistry) {
+                exportData.nfcRegistry = JSON.parse(nfcRegistry);
+            }
+
+            // Save to localStorage backup
+            localStorage.setItem('attendanceDataBackup', JSON.stringify(exportData));
+            localStorage.setItem('lastBackupTimestamp', Date.now().toString());
+        } catch (error) {
+            console.error('Auto-backup error:', error);
+        }
+    }
+
     // --- UI State Management Functions ---
     if (loggedInUser) {
-        studentsDB = loadStudentsDB();
+        studentsDB = await loadStudentsDB();
         showAttendanceSection();
         updateExportSubjectOptions();
     } else {
@@ -286,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lastScan = recentScanCache.get(scannedId);
                     if (!lastScan || (now - lastScan) > 3000) {
                         recentScanCache.set(scannedId, now);
-                        processScannedId(scannedId);
+                        processScannedId(scannedId); // Call async function (promise returned but not awaited - intentional for non-blocking scan)
                         // Auto-clear from cache after 3 seconds
                         setTimeout(() => recentScanCache.delete(scannedId), 3000);
                     }
@@ -320,29 +373,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- NFC Scanning Functionality ---
     let pendingNFCRegistration = null;
     
-    // Load NFC registry from localStorage
-    function loadNFCRegistry() {
+    // Load NFC registry from IndexedDB
+    async function loadNFCRegistry() {
         try {
-            const registry = localStorage.getItem('nfcRegistry');
-            return registry ? JSON.parse(registry) : {};
+            if (!dbReady) return {};
+            const tags = await attendanceDB.getAllNFCTags();
+            // Convert array to object for compatibility
+            const registry = {};
+            tags.forEach(tag => {
+                registry[tag.nfcId] = {
+                    studentId: tag.studentId,
+                    name: tag.name,
+                    course: tag.course,
+                    registeredAt: tag.registeredAt
+                };
+            });
+            return registry;
         } catch (e) {
             console.error('Error loading NFC registry:', e);
             return {};
         }
     }
     
-    // Save NFC registry to localStorage
-    function saveNFCRegistry(registry) {
+    // Save NFC tag to IndexedDB
+    async function saveNFCTag(nfcId, data) {
         try {
-            localStorage.setItem('nfcRegistry', JSON.stringify(registry));
+            if (!dbReady) return;
+            await attendanceDB.addNFCTag({
+                nfcId: nfcId,
+                studentId: data.studentId,
+                name: data.name,
+                course: data.course,
+                registeredAt: data.registeredAt || new Date().toISOString()
+            });
         } catch (e) {
-            console.error('Error saving NFC registry:', e);
+            console.error('Error saving NFC tag:', e);
         }
     }
     
     // Register NFC tag with student data
-    function registerNFCTag(nfcId, studentName, studentCourse) {
-        const registry = loadNFCRegistry();
+    async function registerNFCTag(nfcId, studentName, studentCourse) {
+        const registry = await loadNFCRegistry();
         const studentId = studentName.replace(/\s+/g, '_').toUpperCase();
         
         // Check if NFC tag already registered
@@ -352,21 +423,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Register the NFC tag
-        registry[nfcId] = {
+        const tagData = {
             studentId: studentId,
             name: studentName,
             course: studentCourse,
             registeredAt: new Date().toISOString()
         };
         
-        saveNFCRegistry(registry);
+        await saveNFCTag(nfcId, tagData);
         showScanSuccessAnimation(studentName, 'NFC Tag Registered');
         return true;
     }
     
     // Process NFC scan for attendance
-    function processNFCScan(nfcId) {
-        const registry = loadNFCRegistry();
+    async function processNFCScan(nfcId) {
+        const registry = await loadNFCRegistry();
         const studentData = registry[nfcId];
         
         if (!studentData) {
@@ -557,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNfcError('NFC read error. Please try again.');
             };
             
-            nfcReader.onreading = event => {
+            nfcReader.onreading = async (event) => {
                 let nfcId = '';
                 
                 // Try to get NFC tag ID
@@ -573,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (nfcId) {
                     nfcScanCount++;
                     updateNfcScanCount();
-                    processNFCScan(nfcId);
+                    await processNFCScan(nfcId);
                 } else {
                     showNfcError('Could not read NFC tag ID.');
                 }
@@ -596,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Core ID Processing Logic ---
-    function processScannedId(scannedData) {
+    async function processScannedId(scannedData) {
         // Parse QR code format: "FULL NAME,COURSE,,"
         const parts = scannedData.split(',');
         if (parts.length < 2) {
@@ -616,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pendingNFCRegistration) {
             const nfcId = pendingNFCRegistration;
             pendingNFCRegistration = null;
-            registerNFCTag(nfcId, studentName, studentCourse);
+            await registerNFCTag(nfcId, studentName, studentCourse);
             return;
         }
 
@@ -669,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 status: determinedStatus
             });
 
-            saveStudentsDB();
+            await saveStudentsDB();
             refreshStudentListUI();
             updateExportSubjectOptions();
             showScanSuccessAnimation(student.name, determinedStatus);
@@ -701,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 status: determinedStatus
             });
 
-            saveStudentsDB();
+            await saveStudentsDB();
             refreshStudentListUI();
             updateExportSubjectOptions();
             showScanSuccessAnimation(newStudent.name, determinedStatus);

@@ -8,6 +8,9 @@
     <!-- External Libraries -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- IndexedDB Manager -->
+    <script src="db.js"></script>
+    
     <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -136,6 +139,12 @@
                             </svg>
                             Import Data
                         </button>
+                        <button id="download-backup-btn" class="btn" style="padding: 0.5rem 1rem; background: var(--success); color: white;">
+                            <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5"/>
+                            </svg>
+                            Download Backup
+                        </button>
                         <button id="admin-logout-btn" class="btn btn-outline" style="padding: 0.5rem 1.5rem;">
                             <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -159,8 +168,8 @@
                     </svg>
                     <div style="flex: 1;">
                         <p style="margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.5;">
-                            <strong>Auto-Save Enabled:</strong> All student data is automatically saved to browser's localStorage. 
-                            Use <strong>Export Data</strong> to create a backup JSON file, and <strong>Import Data</strong> to restore from backup.
+                            <strong>� IndexedDB Storage:</strong> All data is permanently saved to browser's IndexedDB (database storage). 
+                            Data persists across sessions and is more reliable than localStorage. Use <strong>Download Backup</strong> for JSON export or <strong>Import Data</strong> to restore.
                         </p>
                     </div>
                 </div>

@@ -7,8 +7,53 @@
         return;
     }
 
-    // Get all students from all users combined
-    function getAllStudents() {
+    // Wait for IndexedDB to initialize
+    let dbReady = false;
+    attendanceDB.init().then(async () => {
+        dbReady = true;
+        console.log('IndexedDB initialized for admin panel');
+        
+        // Check if migration is needed
+        const hasLocalStorageData = localStorage.getItem('allStudents_admin@gmail.com');
+        const existingStudents = await attendanceDB.getAllStudents();
+        
+        if (hasLocalStorageData && existingStudents.length === 0) {
+            if (confirm('Detected localStorage data. Would you like to migrate it to IndexedDB?')) {
+                try {
+                    const count = await attendanceDB.migrateFromLocalStorage();
+                    showNotification(`Successfully migrated ${count} students to IndexedDB!`, 'success');
+                    renderStudents();
+                } catch (error) {
+                    showNotification('Migration failed: ' + error.message, 'error');
+                }
+            }
+        } else {
+            renderStudents();
+        }
+    }).catch(error => {
+        console.error('Failed to initialize IndexedDB:', error);
+        showNotification('Database initialization failed. Falling back to localStorage.', 'error');
+    });
+
+    // Get all students from IndexedDB
+    async function getAllStudents() {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return [];
+        }
+        
+        try {
+            const students = await attendanceDB.getAllStudents();
+            // Add storageKey for compatibility
+            return students.map(student => ({
+                ...student,
+                storageKey: `allStudents_${student.owner}`
+            }));
+        } catch (error) {
+            console.error('Error getting students:', error);
+            return [];
+        }
+    }
         const allStudents = [];
         
         // Get all keys from localStorage
@@ -39,64 +84,53 @@
         return allStudents;
     }
 
-    // Save students back to their respective owners
-    function saveStudent(student) {
-        const key = student.storageKey;
+    // Save student to IndexedDB
+    async function saveStudent(student) {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return false;
+        }
+        
         try {
-            const students = JSON.parse(localStorage.getItem(key)) || [];
-            const index = students.findIndex(s => s.id === student.id);
-            
-            if (index !== -1) {
-                // Update existing student
-                students[index] = {
-                    id: student.id,
-                    name: student.name,
-                    program: student.program,
-                    presentCount: student.presentCount || 0,
-                    lateCount: student.lateCount || 0,
-                    attendanceHistory: student.attendanceHistory || []
-                };
-            } else {
-                // Add new student
-                students.push({
-                    id: student.id,
-                    name: student.name,
-                    program: student.program,
-                    presentCount: 0,
-                    lateCount: 0,
-                    attendanceHistory: []
-                });
-            }
-            
-            localStorage.setItem(key, JSON.stringify(students));
+            await attendanceDB.addStudent({
+                id: student.id,
+                name: student.name,
+                program: student.program,
+                owner: student.owner,
+                presentCount: student.presentCount || 0,
+                lateCount: student.lateCount || 0,
+                attendanceHistory: student.attendanceHistory || []
+            });
             return true;
-        } catch (e) {
-            console.error('Error saving student:', e);
+        } catch (error) {
+            console.error('Error saving student:', error);
             return false;
         }
     }
 
-    // Delete student
-    function deleteStudent(student) {
-        const key = student.storageKey;
+    // Delete student from IndexedDB
+    async function deleteStudent(student) {
+        if (!dbReady) {
+            console.warn('Database not ready');
+            return false;
+        }
+        
         try {
-            const students = JSON.parse(localStorage.getItem(key)) || [];
-            const filtered = students.filter(s => s.id !== student.id);
-            localStorage.setItem(key, JSON.stringify(filtered));
+            await attendanceDB.deleteStudent(student.id);
             return true;
-        } catch (e) {
-            console.error('Error deleting student:', e);
+        } catch (error) {
+            console.error('Error deleting student:', error);
             return false;
         }
     }
 
     // Render students table
-    function renderStudents(students = null) {
+    async function renderStudents(students = null) {
         const tbody = document.getElementById('admin-student-list');
         const studentCount = document.getElementById('student-count');
         
         if (students === null) {
-            students = getAllStudents();
+            students = await getAllStudents();
         }
         
         studentCount.textContent = students.length;
@@ -169,7 +203,7 @@
     }
 
     // Add student
-    document.getElementById('add-student-btn').addEventListener('click', () => {
+    document.getElementById('add-student-btn').addEventListener('click', async () => {
         const name = document.getElementById('student-name').value.trim();
         const course = document.getElementById('student-course').value.trim();
         
@@ -178,29 +212,31 @@
             return;
         }
         
+        if (!dbReady) {
+            showNotification('Database not ready. Please wait...', 'error');
+            return;
+        }
+        
         // Create a student ID from the name
         const studentId = name.replace(/\s+/g, '_').toUpperCase();
         
-        // Add to admin's student database
-        const adminKey = 'allStudents_admin@gmail.com';
-        const students = JSON.parse(localStorage.getItem(adminKey)) || [];
-        
         // Check if student already exists
-        if (students.find(s => s.id === studentId)) {
+        const existingStudent = await attendanceDB.getStudent(studentId);
+        if (existingStudent) {
             alert('A student with this name already exists!');
             return;
         }
         
-        students.push({
+        // Add to IndexedDB
+        await attendanceDB.addStudent({
             id: studentId,
             name: name,
             program: course,
+            owner: 'admin@gmail.com',
             presentCount: 0,
             lateCount: 0,
             attendanceHistory: []
         });
-        
-        localStorage.setItem(adminKey, JSON.stringify(students));
         
         // Clear form
         document.getElementById('student-name').value = '';
@@ -216,11 +252,11 @@
     // Edit student
     let currentEditStudent = null;
     
-    function handleEdit(e) {
+    async function handleEdit(e) {
         const studentId = e.currentTarget.dataset.id;
         const owner = e.currentTarget.dataset.owner;
         
-        const students = getAllStudents();
+        const students = await getAllStudents();
         currentEditStudent = students.find(s => s.id === studentId && s.owner === owner);
         
         if (!currentEditStudent) {
@@ -233,7 +269,7 @@
         document.getElementById('edit-modal').style.display = 'flex';
     }
 
-    document.getElementById('save-edit-btn').addEventListener('click', () => {
+    document.getElementById('save-edit-btn').addEventListener('click', async () => {
         if (!currentEditStudent) return;
         
         const newName = document.getElementById('edit-student-name').value.trim();
@@ -247,9 +283,9 @@
         currentEditStudent.name = newName;
         currentEditStudent.program = newCourse;
         
-        if (saveStudent(currentEditStudent)) {
+        if (await saveStudent(currentEditStudent)) {
             document.getElementById('edit-modal').style.display = 'none';
-            renderStudents();
+            await renderStudents();
             showNotification('Student updated successfully!', 'success');
         } else {
             alert('Error saving student. Please try again.');
@@ -262,11 +298,11 @@
     });
 
     // Delete student
-    function handleDelete(e) {
+    async function handleDelete(e) {
         const studentId = e.currentTarget.dataset.id;
         const owner = e.currentTarget.dataset.owner;
         
-        const students = getAllStudents();
+        const students = await getAllStudents();
         const student = students.find(s => s.id === studentId && s.owner === owner);
         
         if (!student) {
@@ -275,8 +311,8 @@
         }
         
         if (confirm(`Are you sure you want to delete ${student.name}? This action cannot be undone.`)) {
-            if (deleteStudent(student)) {
-                renderStudents();
+            if (await deleteStudent(student)) {
+                await renderStudents();
                 showNotification('Student deleted successfully!', 'success');
             } else {
                 alert('Error deleting student. Please try again.');
@@ -285,28 +321,28 @@
     }
 
     // Search functionality
-    document.getElementById('search-student').addEventListener('input', (e) => {
+    document.getElementById('search-student').addEventListener('input', async (e) => {
         const searchTerm = e.target.value.toLowerCase().trim();
         
         if (searchTerm === '') {
-            renderStudents();
+            await renderStudents();
             return;
         }
         
-        const allStudents = getAllStudents();
+        const allStudents = await getAllStudents();
         const filtered = allStudents.filter(student => 
             student.name.toLowerCase().includes(searchTerm) ||
             student.program.toLowerCase().includes(searchTerm) ||
             student.id.toLowerCase().includes(searchTerm)
         );
         
-        renderStudents(filtered);
+        await renderStudents(filtered);
     });
 
     // Refresh list
-    document.getElementById('refresh-list-btn').addEventListener('click', () => {
+    document.getElementById('refresh-list-btn').addEventListener('click', async () => {
         document.getElementById('search-student').value = '';
-        renderStudents();
+        await renderStudents();
         showNotification('List refreshed!', 'info');
     });
 
@@ -316,42 +352,50 @@
         window.location.href = 'index.html';
     });
 
-    // Export to JSON file
-    document.getElementById('export-json-btn').addEventListener('click', () => {
+    // Download Backup button
+    document.getElementById('download-backup-btn').addEventListener('click', async () => {
+        if (!dbReady) {
+            showNotification('Database not ready. Please try again.', 'error');
+            return;
+        }
+        
         try {
-            // Get all student data from localStorage
-            const exportData = {
-                exportDate: new Date().toISOString(),
-                version: '1.0',
-                students: {}
-            };
-
-            // Collect all student databases
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                
-                if (key && key.startsWith('allStudents_')) {
-                    const owner = key.replace('allStudents_', '');
-                    const students = JSON.parse(localStorage.getItem(key));
-                    exportData.students[owner] = students;
-                }
-            }
-
-            // Also include NFC registry if it exists
-            const nfcRegistry = localStorage.getItem('nfcRegistry');
-            if (nfcRegistry) {
-                exportData.nfcRegistry = JSON.parse(nfcRegistry);
-            }
-
-            // Convert to JSON string
-            const jsonString = JSON.stringify(exportData, null, 2);
+            const exportData = await attendanceDB.exportToJSON();
             
-            // Create blob and download
+            const jsonString = JSON.stringify(exportData, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = `USM_Students_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showNotification('Backup downloaded successfully!', 'success');
+        } catch (error) {
+            console.error('Backup error:', error);
+            showNotification('Error creating backup: ' + error.message, 'error');
+        }
+    });
+
+    // Export to JSON file
+    document.getElementById('export-json-btn').addEventListener('click', async () => {
+        if (!dbReady) {
+            showNotification('Database not ready. Please try again.', 'error');
+            return;
+        }
+        
+        try {
+            const exportData = await attendanceDB.exportToJSON();
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `USM_Students_Export_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -369,7 +413,12 @@
         document.getElementById('import-file-input').click();
     });
 
-    document.getElementById('import-file-input').addEventListener('change', (e) => {
+    document.getElementById('import-file-input').addEventListener('change', async (e) => {
+        if (!dbReady) {
+            showNotification('Database not ready. Please try again.', 'error');
+            return;
+        }
+        
         const file = e.target.files[0];
         if (!file) return;
 
@@ -379,7 +428,7 @@
         }
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const importData = JSON.parse(event.target.result);
 
@@ -395,34 +444,12 @@
                     return;
                 }
 
-                // Import student databases
-                let importedCount = 0;
-                for (const [owner, students] of Object.entries(importData.students)) {
-                    const key = `allStudents_${owner}`;
-                    
-                    // Get existing students
-                    const existing = JSON.parse(localStorage.getItem(key)) || [];
-                    
-                    // Merge: avoid duplicates based on student ID
-                    const existingIds = new Set(existing.map(s => s.id));
-                    const newStudents = students.filter(s => !existingIds.has(s.id));
-                    
-                    // Save merged data
-                    const merged = [...existing, ...newStudents];
-                    localStorage.setItem(key, JSON.stringify(merged));
-                    importedCount += newStudents.length;
-                }
-
-                // Import NFC registry if present
-                if (importData.nfcRegistry) {
-                    const existingNFC = JSON.parse(localStorage.getItem('nfcRegistry')) || {};
-                    const mergedNFC = { ...existingNFC, ...importData.nfcRegistry };
-                    localStorage.setItem('nfcRegistry', JSON.stringify(mergedNFC));
-                }
+                // Import using IndexedDB
+                const result = await attendanceDB.importFromJSON(importData);
 
                 // Refresh display
-                renderStudents();
-                showNotification(`Successfully imported ${importedCount} new students!`, 'success');
+                await renderStudents();
+                showNotification(`Successfully imported ${result.studentsImported} new students!`, 'success');
                 
                 // Reset file input
                 e.target.value = '';
@@ -495,6 +522,20 @@
     `;
     document.head.appendChild(style);
 
-    // Initial render
-    renderStudents();
+    // Initialize: Check for auto-backup on page load
+    checkAutoBackup();
+
+    // Set up periodic auto-backup every 5 minutes
+    setInterval(() => {
+        autoSaveToJSON();
+        console.log('Periodic auto-backup completed');
+    }, BACKUP_INTERVAL);
+
+    // Show last backup time on load
+    const lastBackup = localStorage.getItem(AUTO_BACKUP_KEY);
+    if (lastBackup) {
+        const lastBackupDate = new Date(parseInt(lastBackup));
+        console.log('Last backup:', lastBackupDate.toLocaleString());
+        showNotification(`Data loaded. Last backup: ${lastBackupDate.toLocaleTimeString()}`, 'info');
+    }
 })();
