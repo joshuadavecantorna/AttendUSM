@@ -121,30 +121,72 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // Wait for database to be ready if not already
-            if (!dbReady) {
-                console.log('Database not ready, waiting...');
-                await new Promise((resolve) => {
-                    const checkReady = setInterval(() => {
-                        if (dbReady || attendanceDB.db) {
-                            clearInterval(checkReady);
-                            resolve();
-                        }
-                    }, 100);
-                    // Timeout after 5 seconds
-                    setTimeout(() => {
-                        clearInterval(checkReady);
-                        resolve();
-                    }, 5000);
-                });
+            if (!dbReady || !attendanceDB.db) {
+                console.log('Database not ready, initializing...');
+                try {
+                    await attendanceDB.init();
+                    dbReady = true;
+                    // Give mobile browsers extra time
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (initError) {
+                    console.error('Failed to initialize database:', initError);
+                    return [];
+                }
+            }
+            
+            // Double-check database connection (important for mobile)
+            if (!attendanceDB.db) {
+                console.error('Database connection not available after initialization');
+                // Try one more time
+                try {
+                    await attendanceDB.init();
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (retryError) {
+                    console.error('Retry initialization failed:', retryError);
+                    return [];
+                }
             }
             
             if (!attendanceDB.db) {
-                console.error('Database connection not available');
+                console.error('Database connection still not available');
                 return [];
             }
             
-            const classes = await attendanceDB.getAllClasses();
-            console.log('Loaded classes:', classes.length, classes);
+            // Verify classes store exists
+            if (!attendanceDB.db.objectStoreNames.contains('classes')) {
+                console.warn('Classes store does not exist, database may need upgrade');
+                // Try to trigger upgrade by reinitializing with same version
+                try {
+                    await attendanceDB.init();
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (upgradeError) {
+                    console.error('Upgrade attempt failed:', upgradeError);
+                }
+            }
+            
+            // Retry logic for mobile browsers (sometimes first attempt fails)
+            let classes = [];
+            let retries = 3;
+            
+            while (retries > 0 && (!classes || classes.length === 0)) {
+                try {
+                    classes = await attendanceDB.getAllClasses();
+                    console.log(`Loaded classes (attempt ${4 - retries}):`, classes ? classes.length : 0);
+                    
+                    if (classes && Array.isArray(classes) && classes.length > 0) {
+                        break;
+                    }
+                } catch (error) {
+                    console.warn(`Attempt ${4 - retries} failed:`, error);
+                }
+                
+                retries--;
+                if (retries > 0) {
+                    // Wait a bit before retry (mobile browsers need more time)
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+            }
+            
             return Array.isArray(classes) ? classes : [];
         } catch (error) {
             console.error('Error loading classes:', error);
@@ -162,11 +204,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         classSelect.innerHTML = '';
 
         console.log('Updating class select with', classesDB.length, 'classes');
+        console.log('Classes data:', JSON.stringify(classesDB, null, 2));
 
         if (!classesDB.length) {
             const option = document.createElement('option');
             option.value = '';
-            option.textContent = 'No classes available - Click refresh to reload';
+            // Check if we're on mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                option.textContent = 'No classes - Tap refresh (↻) button';
+            } else {
+                option.textContent = 'No classes available - Click refresh to reload';
+            }
             classSelect.appendChild(option);
             classSelect.disabled = false; // Keep enabled so user can see the message
             return;
@@ -381,17 +430,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // Ensure database is ready
-        if (!dbReady) {
-            await attendanceDB.init().then(() => {
+        if (!dbReady || !attendanceDB.db) {
+            try {
+                await attendanceDB.init();
                 dbReady = true;
                 console.log('IndexedDB initialized for attendance system');
-            }).catch(error => {
+                // Extra wait for mobile browsers
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (error) {
                 console.error('Failed to initialize IndexedDB:', error);
-            });
+            }
         }
         
         studentsDB = await loadStudentsDB();
         classesDB = await loadClassesDB();
+        
+        // Mobile retry if no classes found
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile && classesDB.length === 0) {
+            console.log('Mobile device: No classes on first load, retrying...');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            classesDB = await loadClassesDB();
+            console.log('Mobile retry result:', classesDB.length);
+        }
+        
         updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
@@ -538,18 +603,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('loggedInUser', loggedInUser);
         
         // Ensure database is ready before loading data
-        if (!dbReady) {
-            await attendanceDB.init().then(() => {
+        if (!dbReady || !attendanceDB.db) {
+            try {
+                await attendanceDB.init();
                 dbReady = true;
                 console.log('IndexedDB initialized after login');
-            }).catch(error => {
+                // Extra wait for mobile browsers
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (error) {
                 console.error('Failed to initialize IndexedDB:', error);
-            });
+            }
         }
         
         studentsDB = await loadStudentsDB();
         classesDB = await loadClassesDB();
         console.log('Classes loaded after login:', classesDB.length);
+        
+        // If no classes found, try one more time after a delay (mobile fix)
+        if (classesDB.length === 0) {
+            console.log('No classes found, retrying after delay...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            classesDB = await loadClassesDB();
+            console.log('Classes after retry:', classesDB.length);
+        }
         updateClassSelectOptions();
         showAttendanceSection();
         updateExportSubjectOptions();
@@ -1228,16 +1304,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (refreshClassesBtn) {
         refreshClassesBtn.addEventListener('click', async () => {
             console.log('Refreshing classes...');
-            if (!dbReady && attendanceDB.db) {
+            // Force reinitialize database on mobile
+            try {
+                await attendanceDB.init();
                 dbReady = true;
+                // Extra wait for mobile
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (initError) {
+                console.warn('Reinitialization warning:', initError);
             }
+            
             classesDB = await loadClassesDB();
             console.log('Classes refreshed:', classesDB.length);
             updateClassSelectOptions();
             if (classesDB.length > 0) {
                 showPermissionModal(`Loaded ${classesDB.length} class(es)`, 'info');
             } else {
-                showPermissionModal('No classes found. Make sure classes are created in the admin panel.', 'error');
+                showPermissionModal('No classes found. Make sure classes are created in the admin panel and try refreshing again.', 'error');
             }
         });
     }

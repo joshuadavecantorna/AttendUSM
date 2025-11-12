@@ -11,17 +11,27 @@ class AttendanceDB {
     // Initialize database
     async init() {
         return new Promise((resolve, reject) => {
+            // Check if IndexedDB is supported
+            if (!window.indexedDB) {
+                reject(new Error('IndexedDB is not supported in this browser'));
+                return;
+            }
+
             const request = indexedDB.open(this.dbName, this.version);
 
             request.onerror = () => {
-                console.error('Database failed to open');
+                console.error('Database failed to open:', request.error);
                 reject(request.error);
             };
 
             request.onsuccess = () => {
                 this.db = request.result;
                 console.log('Database opened successfully');
-                resolve(this.db);
+                
+                // On mobile, sometimes the connection needs a moment to stabilize
+                setTimeout(() => {
+                    resolve(this.db);
+                }, 50);
             };
 
             request.onupgradeneeded = (event) => {
