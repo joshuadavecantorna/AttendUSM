@@ -184,6 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleLogin() {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value.trim();
+        
+        // Check for admin credentials
+        if (username === 'admin@gmail.com' && password === 'admin') {
+            loggedInUser = username;
+            localStorage.setItem('loggedInUser', loggedInUser);
+            // Redirect to admin page
+            window.location.href = 'admin.html';
+            return;
+        }
+        
         const userData = localStorage.getItem(`user_${username}`);
 
         if (!userData) {
