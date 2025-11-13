@@ -122,8 +122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadClassesDB() {
         try {
+            console.log('loadClassesDB called, loggedInUser:', loggedInUser);
+            
             if (!loggedInUser) {
                 console.log('No logged in user, skipping class load');
+                console.log('localStorage loggedInUser:', localStorage.getItem('loggedInUser'));
                 return [];
             }
             
@@ -1374,6 +1377,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (refreshClassesBtn) {
         refreshClassesBtn.addEventListener('click', async () => {
             console.log('Refreshing classes...');
+            
+            // Re-read loggedInUser from localStorage in case it was set but variable was cleared
+            if (!loggedInUser) {
+                loggedInUser = localStorage.getItem('loggedInUser');
+                console.log('Re-loaded loggedInUser from localStorage:', loggedInUser);
+            }
+            
+            console.log('Current loggedInUser:', loggedInUser);
+            
             // Force reinitialize database on mobile
             try {
                 await attendanceDB.init();
