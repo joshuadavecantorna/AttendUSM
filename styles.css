@@ -1044,3 +1044,49 @@ input[type="search"]:hover::placeholder {
         box-shadow: 0 12px 30px rgba(243, 156, 18, 0.4), 0 0 40px rgba(243, 156, 18, 0.2);
     }
 }
+
+/* Print styles for PDF export */
+@media print {
+    table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+    
+    table th,
+    table td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        word-wrap: break-word;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Fix column widths for better layout */
+    table th:nth-child(1),
+    table td:nth-child(1) {
+        width: 5%;  /* # column */
+    }
+    
+    table th:nth-child(2),
+    table td:nth-child(2) {
+        width: 30%; /* Name column */
+    }
+    
+    table th:nth-child(3),
+    table td:nth-child(3) {
+        width: 20%; /* Course column */
+    }
+    
+    table th:nth-child(4),
+    table td:nth-child(4) {
+        width: 12%; /* Time column - increased width */
+        white-space: nowrap;
+        font-size: 11px;
+    }
+    
+    table th:nth-child(5),
+    table td:nth-child(5) {
+        width: 10%; /* Status column */
+    }
+}

@@ -1388,14 +1388,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    startSessionBtn.addEventListener('click', async () => {
-        const selectedClassId = classSelect ? classSelect.value : '';
-        const timeInput = document.getElementById('class-time').value;
+    if (startSessionBtn) {
+        // Ensure button is enabled and clickable
+        startSessionBtn.disabled = false;
+        startSessionBtn.style.pointerEvents = 'auto';
+        startSessionBtn.style.cursor = 'pointer';
+        
+        startSessionBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Start session button clicked');
+            
+            const selectedClassId = classSelect ? classSelect.value : '';
+            const timeInput = document.getElementById('class-time') ? document.getElementById('class-time').value : '';
 
-        if (!selectedClassId || !timeInput) {
-            showPermissionModal('Please select a class and set the class time before starting the session.', 'error');
-            return;
-        }
+            if (!selectedClassId || !timeInput) {
+                showPermissionModal('Please select a class and set the class time before starting the session.', 'error');
+                return;
+            }
 
         // Check if Quick Attendance is selected
         if (selectedClassId === 'QUICK_ATTENDANCE') {
@@ -1466,24 +1477,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         showPermissionModal(`Session for ${currentClassName} at ${currentClassTimeStr} started.`, 'info');
-    });
+        });
+    } else {
+        console.error('Start session button not found in DOM');
+    }
 
-    scanQrBtn.addEventListener('click', () => {
-        // Allow scanning even without session for student registration
-        if (qrScanningActive) {
-            stopQrScanner();
-            return;
-        }
-        qrScanningActive = true;
-        scanQrBtn.classList.add('scanning-active');
-        scanQrBtn.innerHTML = `
-            <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-            </svg>
-            Stop Scanning
-        `;
-        startQrScanner();
-    });
+    if (scanQrBtn) {
+        scanQrBtn.addEventListener('click', () => {
+            // Allow scanning even without session for student registration
+            if (qrScanningActive) {
+                stopQrScanner();
+                return;
+            }
+            qrScanningActive = true;
+            scanQrBtn.classList.add('scanning-active');
+            scanQrBtn.innerHTML = `
+                <svg style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                </svg>
+                Stop Scanning
+            `;
+            startQrScanner();
+        });
+    }
 
     scanNfcBtn.addEventListener('click', () => {
         // NFC can be used without session for registration
@@ -1532,6 +1548,437 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+
+    // PDF Export functionality
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', async () => {
+            if (studentsDB.length === 0) {
+                alert('No student data to export.');
+                return;
+            }
+            
+            const exportOption = exportSubjectSelect.value;
+            
+            if (exportOption === 'current') {
+                // Export current session only
+                if (!currentClassId || attendanceDataForCurrentSession.length === 0) {
+                    alert('No attendance data for the current session to export.');
+                    return;
+                }
+                
+                try {
+                    await generateCurrentSessionPDF();
+                } catch (error) {
+                    console.error('PDF export error:', error);
+                    alert('Error generating PDF: ' + error.message);
+                }
+            } else {
+                alert('PDF export is currently only available for the current session.');
+            }
+        });
+    }
+
+    async function generateCurrentSessionPDF() {
+        // Check for PDF library (pdf-lib uses PDFLib as global)
+        if (typeof PDFLib === 'undefined' && typeof window.PDFLib === 'undefined') {
+            alert('PDF library not loaded. Please refresh the page and try again.');
+            return;
+        }
+        
+        const pdfLib = typeof PDFLib !== 'undefined' ? PDFLib : window.PDFLib;
+
+        try {
+            // Show loading message
+            console.log('Generating PDF...');
+            
+            // Create a new PDF document
+            const pdfDoc = await pdfLib.PDFDocument.create();
+            
+            // Page setup (A4 size)
+            const page = pdfDoc.addPage([595, 842]); // A4 dimensions in points
+            const { width, height } = page.getSize();
+            
+            // Get class information
+            let className = currentClassName || 'Unassigned Class';
+            // Check if it's Quick Attendance and display as "Quick Scan"
+            if (currentClassId === 'QUICK_ATTENDANCE' || className === 'Quick Attendance') {
+                className = 'Quick Scan';
+            }
+            const classTime = currentClassTimeStr || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const currentDate = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Get course/program from first student
+            let courseName = '';
+            const firstStudent = attendanceDataForCurrentSession[0];
+            if (firstStudent) {
+                const student = studentsDB.find(s => s.id === firstStudent.id);
+                if (student && student.program) {
+                    courseName = student.program;
+                }
+            }
+            
+            // Load and embed the logo
+            let logoImage = null;
+            try {
+                const logoPath = 'usm_logo_Aug-2024.png';
+                const logoResponse = await fetch(logoPath);
+                if (logoResponse.ok) {
+                    const logoBytes = await logoResponse.arrayBuffer();
+                    logoImage = await pdfDoc.embedPng(logoBytes);
+                }
+            } catch (logoError) {
+                console.warn('Could not load logo:', logoError);
+            }
+            
+            // Embed fonts
+            const helveticaBold = await pdfDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
+            const helvetica = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
+            
+            // Center text helper
+            const centerText = (text, y, size, font) => {
+                const textWidth = font.widthOfTextAtSize(text, size);
+                page.drawText(text, {
+                    x: (width - textWidth) / 2,
+                    y: y,
+                    size: size,
+                    font: font,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+            };
+            
+            // Draw logo and header text aligned on the left
+            const headerY = height - 40;
+            const leftMarginLogo = 50; // Left margin for logo and text alignment
+            
+            if (logoImage) {
+                const logoDims = logoImage.scale(0.05); // Reduced to 5% of original size (even smaller)
+                const logoY = headerY - (logoDims.height / 2) + 9; // Align vertically with text (text is 18pt, so center logo with text)
+                
+                page.drawImage(logoImage, {
+                    x: leftMarginLogo, // Left aligned
+                    y: logoY,
+                    width: logoDims.width,
+                    height: logoDims.height,
+                });
+            }
+            
+            // Draw header text aligned with logo (left side)
+            const textX = logoImage ? leftMarginLogo + logoImage.scale(0.05).width + 15 : leftMarginLogo; // Add spacing after logo
+            page.drawText('University of Southern Mindanao', {
+                x: textX,
+                y: headerY,
+                size: 18,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            const generatedAt = new Date().toLocaleString();
+            const presentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Present').length;
+            const lateStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Late').length;
+            const absentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Absent').length;
+            const totalStudents = attendanceDataForCurrentSession.length;
+            const attendedStudents = presentStudents + lateStudents;
+            
+            let currentY = headerY - 60; // Increased spacing from 30 to 60 to avoid overlap
+            const leftMargin = 50;
+            const fontSize = 11;
+            
+            // Attendance Report for [Class]
+            page.drawText(`Attendance Report for ${className}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Class Time
+            currentY -= 18;
+            page.drawText(`Class Time: ${classTime}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Report Generated
+            currentY -= 18;
+            page.drawText(`Report Generated: ${generatedAt}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // SUMMARY section
+            currentY -= 30;
+            page.drawText('SUMMARY', {
+                x: leftMargin,
+                y: currentY,
+                size: 12,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            currentY -= 18;
+            page.drawText(`Total Students: ${totalStudents}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            currentY -= 18;
+            page.drawText(`Present: ${presentStudents}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            currentY -= 18;
+            page.drawText(`Late: ${lateStudents}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            currentY -= 18;
+            page.drawText(`Absent: ${absentStudents}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            currentY -= 18;
+            const attendanceRate = totalStudents > 0 ? Math.round((attendedStudents / totalStudents) * 100) : 0;
+            page.drawText(`Attendance Rate: ${attendanceRate}%`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Sort students alphabetically and get detailed data first
+            const sortedStudents = [...attendanceDataForCurrentSession]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(sessionRecord => {
+                    const student = studentsDB.find(s => s.id === sessionRecord.id);
+                    const record = student ? (student.attendanceHistory || []).find(r => r.sessionId === currentSessionId) : null;
+                    return {
+                        id: student?.id || sessionRecord.id,
+                        name: student?.name || sessionRecord.name,
+                        program: student?.program || '',
+                        status: sessionRecord.status,
+                        timestamp: record?.timestamp || new Date().toISOString()
+                    };
+                });
+            
+            // DETAILED ATTENDANCE section
+            currentY -= 30;
+            page.drawText('DETAILED ATTENDANCE', {
+                x: leftMargin,
+                y: currentY,
+                size: 12,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Table setup (removed Student ID column)
+            currentY -= 25;
+            const tableLeftMargin = leftMargin;
+            const tableWidth = width - (tableLeftMargin * 2);
+            // Calculate column widths to fit within table (with some padding)
+            const totalColumnWidth = tableWidth - 10; // Leave 10 points for padding/margins
+            const col1Width = Math.floor(totalColumnWidth * 0.45); // Full Name - 45%
+            const col2Width = Math.floor(totalColumnWidth * 0.25); // Program - 25%
+            const col3Width = Math.floor(totalColumnWidth * 0.15); // Status - 15%
+            const col4Width = Math.floor(totalColumnWidth * 0.15); // Time - 15%
+            
+            // Draw table header background
+            page.drawRectangle({
+                x: tableLeftMargin,
+                y: currentY - 20,
+                width: tableWidth,
+                height: 20,
+                color: pdfLib.rgb(0.9, 0.9, 0.9),
+            });
+            
+            // Draw header text (removed Student ID)
+            page.drawText('Full Name', {
+                x: tableLeftMargin + 5,
+                y: currentY - 15,
+                size: 9,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            page.drawText('Program', {
+                x: tableLeftMargin + col1Width + 5,
+                y: currentY - 15,
+                size: 9,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            page.drawText('Status', {
+                x: tableLeftMargin + col1Width + col2Width + 5,
+                y: currentY - 15,
+                size: 9,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            page.drawText('Time', {
+                x: tableLeftMargin + col1Width + col2Width + col3Width + 5,
+                y: currentY - 15,
+                size: 9,
+                font: helveticaBold,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Draw table border
+            const tableHeight = Math.min(sortedStudents.length * 15 + 20, height - currentY - 100);
+            page.drawRectangle({
+                x: tableLeftMargin,
+                y: currentY - tableHeight,
+                width: tableWidth,
+                height: tableHeight,
+                borderColor: pdfLib.rgb(0, 0, 0),
+                borderWidth: 1,
+            });
+            
+            // Draw vertical lines (separating all columns including Time)
+            let xPos = tableLeftMargin;
+            [col1Width, col2Width, col3Width, col4Width].forEach(colWidth => {
+                xPos += colWidth;
+                // Don't draw line at the very end (right edge of table)
+                if (xPos < tableLeftMargin + tableWidth - 1) {
+                    page.drawLine({
+                        start: { x: xPos, y: currentY },
+                        end: { x: xPos, y: currentY - tableHeight },
+                        thickness: 1,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                }
+            });
+            
+            // Draw horizontal line under header
+            page.drawLine({
+                start: { x: tableLeftMargin, y: currentY - 20 },
+                end: { x: tableLeftMargin + tableWidth, y: currentY - 20 },
+                thickness: 1,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Draw student list
+            let studentY = currentY - 35;
+            const lineHeight = 15;
+            const maxStudentsPerPage = Math.floor((currentY - 100) / lineHeight);
+            
+            sortedStudents.slice(0, maxStudentsPerPage).forEach((student, index) => {
+                // Full Name (no truncation - show complete name)
+                page.drawText(student.name, {
+                    x: tableLeftMargin + 5,
+                    y: studentY,
+                    size: 8,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                // Program
+                const program = student.program.length > 18 ? student.program.substring(0, 15) + '...' : student.program;
+                page.drawText(program || 'N/A', {
+                    x: tableLeftMargin + col1Width + 5,
+                    y: studentY,
+                    size: 8,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                // Status
+                const statusColor = student.status === 'Present' ? pdfLib.rgb(0, 0.6, 0) : 
+                                    student.status === 'Late' ? pdfLib.rgb(0.8, 0.5, 0) : 
+                                    pdfLib.rgb(0.8, 0, 0);
+                page.drawText(student.status, {
+                    x: tableLeftMargin + col1Width + col2Width + 5,
+                    y: studentY,
+                    size: 8,
+                    font: helvetica,
+                    color: statusColor,
+                });
+                
+                // Time only (no date) - ensure it fits in the column
+                const timeOnly = new Date(student.timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                // Calculate position within the time column (with padding)
+                const timeX = tableLeftMargin + col1Width + col2Width + col3Width + 5;
+                page.drawText(timeOnly, {
+                    x: timeX,
+                    y: studentY,
+                    size: 8,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                // Draw horizontal line
+                if (index < sortedStudents.length - 1 && index < maxStudentsPerPage - 1) {
+                    page.drawLine({
+                        start: { x: tableLeftMargin, y: studentY - 5 },
+                        end: { x: tableLeftMargin + tableWidth, y: studentY - 5 },
+                        thickness: 0.5,
+                        color: pdfLib.rgb(0.7, 0.7, 0.7),
+                    });
+                }
+                
+                studentY -= lineHeight;
+            });
+            
+            // Draw "Verified by:" at the bottom
+            const verifiedY = 60;
+            page.drawText('Verified by: _________________________', {
+                x: tableLeftMargin,
+                y: verifiedY,
+                size: 11,
+                font: helvetica,
+                color: pdfLib.rgb(0, 0, 0),
+            });
+            
+            // Save the PDF
+            const pdfBytes = await pdfDoc.save();
+            
+            // Download the PDF
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const classLabel = className.replace(/\s/g, '_');
+            link.download = `USM_Attendance_${classLabel}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            alert('PDF exported successfully!');
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('Error generating PDF: ' + error.message);
+        }
+    }
     
     function generateCurrentSessionCSV() {
         const classLabel = currentClassName || 'Unassigned Class';
