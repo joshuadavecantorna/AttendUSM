@@ -1014,9 +1014,6 @@
     `;
     document.head.appendChild(style);
 
-    // Initialize: Check for auto-backup on page load
-    checkAutoBackup();
-
     // Set up periodic auto-backup every 5 minutes
     setInterval(() => {
         autoSaveToJSON();
