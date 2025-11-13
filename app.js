@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Always add Quick Attendance option first
         const quickOption = document.createElement('option');
         quickOption.value = 'QUICK_ATTENDANCE';
-        quickOption.textContent = '⚡ Quick Attendance';
+        quickOption.textContent = 'Quick Attendance';
         quickOption.style.fontWeight = '600';
         classSelect.appendChild(quickOption);
 
@@ -1665,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const col2Width = Math.round(tableWidth * 0.25); // Program - 25%
             const col3Width = Math.round(tableWidth * 0.15); // Status - 15%
             const col4Width = tableWidth - (col1Width + col2Width + col3Width); // Time - remaining width
-            const lineHeight = 12; // Reduced line height to fit more rows
+            const lineHeight = 15; // Reduced line height to fit more rows
             const headerHeight = 20;
             const tableStartY = height - 280; // Start table lower to fit summary
             const tableBottomY = 80; // Space for "Verified by" at bottom
@@ -1678,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (logoImage && isFirstPage) {
                     const scaledLogo = logoImage.scale(0.038);
-                    const logoY = headerY - (scaledLogo.height / 2) + 9;
+                    const logoY = headerY - (scaledLogo.height / 2) + 5;
                     
                     page.drawImage(logoImage, {
                         x: leftMarginLogo,
