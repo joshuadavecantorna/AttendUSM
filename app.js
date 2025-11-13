@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     classes = await attendanceDB.getAllClasses();
                     console.log(`Loaded classes (attempt ${4 - retries}):`, classes ? classes.length : 0);
+                    console.log('Raw classes data:', JSON.stringify(classes, null, 2));
                     
                     if (classes && Array.isArray(classes) && classes.length > 0) {
                         break;
@@ -192,6 +193,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Wait a bit before retry (mobile browsers need more time)
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
+            }
+            
+            // Filter by owner if loggedInUser exists, but allow classes without owner (legacy data)
+            if (classes && Array.isArray(classes) && loggedInUser) {
+                classes = classes.filter(cls => !cls.owner || cls.owner === loggedInUser);
+                console.log(`Filtered to ${classes.length} classes for user ${loggedInUser}`);
             }
             
             return Array.isArray(classes) ? classes : [];
