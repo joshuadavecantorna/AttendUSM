@@ -1014,17 +1014,8 @@
     `;
     document.head.appendChild(style);
 
-    // Set up periodic auto-backup every 5 minutes
-    setInterval(() => {
-        autoSaveToJSON();
-        console.log('Periodic auto-backup completed');
-    }, BACKUP_INTERVAL);
-
-    // Show last backup time on load
-    const lastBackup = localStorage.getItem(AUTO_BACKUP_KEY);
-    if (lastBackup) {
-        const lastBackupDate = new Date(parseInt(lastBackup));
-        console.log('Last backup:', lastBackupDate.toLocaleString());
-        showNotification(`Data loaded. Last backup: ${lastBackupDate.toLocaleTimeString()}`, 'info');
+    // Show notification on page load if there's existing data
+    if (localStorage.getItem('loggedInUser')) {
+        console.log('Admin panel loaded for user:', localStorage.getItem('loggedInUser'));
     }
 })();
