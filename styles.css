@@ -914,6 +914,42 @@ input[type="search"]:hover::placeholder {
     box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
 }
 
+.export-controls {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.export-select {
+    margin-bottom: 0;
+}
+
+.export-btn {
+    min-width: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .export-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .export-select {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 520px) {
+    .export-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .export-btn {
+        width: 100%;
+    }
+}
+
 /* Responsive Adjustments */
 @media (max-width: 576px) {
     .container {

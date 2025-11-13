@@ -441,8 +441,8 @@
 
                 <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
                     <h4 style="margin-top: 0; margin-bottom: 1rem;">Export Options</h4>
-                    <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 0.75rem; align-items: end;">
-                        <div class="form-group" style="margin-bottom: 0;">
+                    <div class="export-controls">
+                        <div class="form-group export-select">
                             <label for="export-subject-select" style="font-size: 0.9rem;">Select Data</label>
                             <select id="export-subject-select">
                                 <option value="current">Current Session Only</option>
@@ -450,7 +450,7 @@
                                 <!-- Options will be populated dynamically -->
                             </select>
                         </div>
-                        <button id="export-excel-btn" class="btn btn-primary">
+                        <button id="export-excel-btn" class="btn btn-primary export-btn">
                             <svg style="width: 18px; height: 18px; margin-right: 6px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
@@ -458,7 +458,7 @@
                             </svg>
                             Export Excel
                         </button>
-                        <button id="export-pdf-btn" class="btn btn-primary" style="background: var(--danger);">
+                        <button id="export-pdf-btn" class="btn btn-primary export-btn" style="background: var(--danger);">
                             <svg style="width: 18px; height: 18px; margin-right: 6px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
