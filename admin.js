@@ -410,7 +410,6 @@
         const classRecord = {
             classId,
             name: className,
-            owner: loggedInUser,
             students: classStudents,
             createdAt: existingClass?.createdAt || timestamp,
             updatedAt: timestamp

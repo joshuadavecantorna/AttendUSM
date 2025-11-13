@@ -122,13 +122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadClassesDB() {
         try {
-            console.log('loadClassesDB called, loggedInUser:', loggedInUser);
+            console.log('loadClassesDB called');
             
-            if (!loggedInUser) {
-                console.log('No logged in user, skipping class load');
-                console.log('localStorage loggedInUser:', localStorage.getItem('loggedInUser'));
-                return [];
-            }
+            // Note: No user check needed - all classes are accessible to all users
             
             // Wait for database to be ready if not already
             if (!dbReady || !attendanceDB.db) {
@@ -198,11 +194,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            // Filter by owner if loggedInUser exists, but allow classes without owner (legacy data)
-            if (classes && Array.isArray(classes) && loggedInUser) {
-                classes = classes.filter(cls => !cls.owner || cls.owner === loggedInUser);
-                console.log(`Filtered to ${classes.length} classes for user ${loggedInUser}`);
-            }
+            // Return all classes - no filtering by owner (classes are shared across all users)
+            console.log(`Loaded ${classes ? classes.length : 0} classes (shared across all users)`);
             
             return Array.isArray(classes) ? classes : [];
         } catch (error) {
