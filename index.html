@@ -151,8 +151,9 @@
             <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <h2 style="margin: 0 0 0.25rem; color: white;">Attendance Dashboard</h2>
-                        <p id="current-session-info" style="margin: 0; opacity: 0.9; font-size: 0.9rem; color: white;">No active session</p>
+                        <p id="welcome-message" style="margin: 0 0 0.5rem; opacity: 0.9; font-size: 1.1rem; color: white; font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, sans-serif; font-weight: 500; letter-spacing: -0.02em;"></p>
+                        <h2 style="margin: 0 0 0.25rem; color: white; font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, sans-serif; font-weight: 700; letter-spacing: -0.03em;">Attendance Dashboard</h2>
+                        <p id="current-session-info" style="margin: 0; opacity: 0.9; font-size: 0.9rem; color: white; font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, sans-serif; font-weight: 400;"></p>
                     </div>
                 </div>
             </div>
@@ -227,19 +228,10 @@
                             </svg>
                             Class
                         </label>
-                        <div style="display: flex; gap: 0.5rem; align-items: stretch;">
-                            <select id="class-select" class="input-modern" style="flex: 1;">
-                                <option value="">Select class</option>
-                                <option value="QUICK_ATTENDANCE" style="font-weight: 600; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">⚡ Quick Attendance</option>
-                            </select>
-                            <button id="refresh-classes-btn" type="button" class="btn btn-outline" style="padding: 0.75rem; min-width: 48px;" title="Refresh classes list">
-                                <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
-                            </button>
-                        </div>
+                        <select id="class-select" class="input-modern">
+                            <option value="">Select class</option>
+                            <option value="QUICK_ATTENDANCE" style="font-weight: 600;">⚡ Quick Attendance</option>
+                        </select>
                     </div>
                     <div class="form-group-modern">
                         <label for="class-time" class="form-label-modern">

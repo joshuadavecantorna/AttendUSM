@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function saveStudentsDB() {
         try {
-            if (!loggedInUser || !dbReady) {
-                console.warn('Cannot save: loggedInUser=', loggedInUser, 'dbReady=', dbReady);
+            if (!dbReady) {
+                console.warn('Cannot save: dbReady=', dbReady);
                 return;
             }
             
@@ -105,9 +105,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Save each student to IndexedDB
             for (const student of studentsDB) {
+                // Preserve existing owner or use current user or default to admin
+                const owner = student.owner || loggedInUser || 'admin@gmail.com';
                 await attendanceDB.addStudent({
                     ...student,
-                    owner: loggedInUser
+                    owner: owner
                 });
             }
             
@@ -216,40 +218,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Updating class select with', classesDB.length, 'classes');
         console.log('Classes data:', JSON.stringify(classesDB, null, 2));
 
-        if (!classesDB.length) {
-            const option = document.createElement('option');
-            option.value = '';
-            // Check if we're on mobile
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            if (isMobile) {
-                option.textContent = 'No classes - Tap refresh (↻) button';
-            } else {
-                option.textContent = 'No classes available - Click refresh to reload';
-            }
-            classSelect.appendChild(option);
-            classSelect.disabled = false; // Keep enabled so user can see the message
-            return;
-        }
-
         classSelect.disabled = false;
 
+        // Always add placeholder
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.textContent = 'Select class';
         classSelect.appendChild(placeholder);
 
-        classesDB.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        
-        classesDB.forEach(cls => {
-            if (!cls || !cls.classId || !cls.name) {
-                console.warn('Invalid class data:', cls);
-                return;
-            }
-            const option = document.createElement('option');
-            option.value = cls.classId;
-            option.textContent = cls.name;
-            classSelect.appendChild(option);
-        });
+        // Always add Quick Attendance option first
+        const quickOption = document.createElement('option');
+        quickOption.value = 'QUICK_ATTENDANCE';
+        quickOption.textContent = '⚡ Quick Attendance';
+        quickOption.style.fontWeight = '600';
+        classSelect.appendChild(quickOption);
+
+        // Add regular classes if any
+        if (classesDB.length > 0) {
+            classesDB.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            
+            classesDB.forEach(cls => {
+                if (!cls || !cls.classId || !cls.name) {
+                    console.warn('Invalid class data:', cls);
+                    return;
+                }
+                const option = document.createElement('option');
+                option.value = cls.classId;
+                option.textContent = cls.name;
+                classSelect.appendChild(option);
+            });
+        }
 
         if (previousSelection) {
             const optionToRestore = Array.from(classSelect.options).find(opt => opt.value === previousSelection);
@@ -434,10 +432,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- UI State Management Functions ---
     async function initializeUserSession() {
+        console.log('initializeUserSession called');
+        
         if (!loggedInUser) {
+            console.log('No loggedInUser in initializeUserSession, showing auth');
             showAuthSection();
             return;
         }
+        
+        console.log('Initializing session for user:', loggedInUser);
         
         // Ensure database is ready
         if (!dbReady || !attendanceDB.db) {
@@ -473,9 +476,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Initialize on page load
+    console.log('=== Page Load Initialization ===');
+    console.log('loggedInUser:', loggedInUser);
+    
     if (loggedInUser) {
+        console.log('User is logged in, initializing session...');
         await initializeUserSession();
+        console.log('Session initialized, classesDB length:', classesDB.length);
     } else {
+        console.log('No user logged in, showing auth section');
         showAuthSection();
     }
 
@@ -486,6 +495,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         attendanceCapture.classList.add('hidden');
         attendanceDisplay.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
+        
+        // Show welcome message if user logged in via QR/NFC
+        const welcomeMsg = document.getElementById('welcome-message');
+        const userName = localStorage.getItem('currentUserName');
+        const userCourse = localStorage.getItem('currentUserCourse');
+        
+        if (welcomeMsg && userName && userCourse) {
+            // Get current time for greeting
+            const hour = new Date().getHours();
+            let greeting = 'Good Evening';
+            if (hour < 12) greeting = 'Good Morning';
+            else if (hour < 18) greeting = 'Good Afternoon';
+            
+            welcomeMsg.textContent = `${greeting}, ${userName}! 👋`;
+            welcomeMsg.style.display = 'block';
+        } else if (welcomeMsg) {
+            welcomeMsg.style.display = 'none';
+        }
     }
 
     function showAuthSection() {
@@ -1323,6 +1350,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('currentUserName');
+        localStorage.removeItem('currentUserCourse');
         loggedInUser = null;
         studentsDB = [];
         classesDB = [];
@@ -1346,6 +1375,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Confirm before ending session and logging out
             if (confirm('Are you sure you want to end this session and logout? All unsaved data will be lost.')) {
                 localStorage.removeItem('loggedInUser');
+                localStorage.removeItem('currentUserName');
+                localStorage.removeItem('currentUserCourse');
                 loggedInUser = null;
                 studentsDB = [];
                 classesDB = [];
@@ -1365,40 +1396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Refresh classes button
-    const refreshClassesBtn = document.getElementById('refresh-classes-btn');
-    if (refreshClassesBtn) {
-        refreshClassesBtn.addEventListener('click', async () => {
-            console.log('Refreshing classes...');
-            
-            // Re-read loggedInUser from localStorage in case it was set but variable was cleared
-            if (!loggedInUser) {
-                loggedInUser = localStorage.getItem('loggedInUser');
-                console.log('Re-loaded loggedInUser from localStorage:', loggedInUser);
-            }
-            
-            console.log('Current loggedInUser:', loggedInUser);
-            
-            // Force reinitialize database on mobile
-            try {
-                await attendanceDB.init();
-                dbReady = true;
-                // Extra wait for mobile
-                await new Promise(resolve => setTimeout(resolve, 300));
-            } catch (initError) {
-                console.warn('Reinitialization warning:', initError);
-            }
-            
-            classesDB = await loadClassesDB();
-            console.log('Classes refreshed:', classesDB.length);
-            updateClassSelectOptions();
-            if (classesDB.length > 0) {
-                showPermissionModal(`Loaded ${classesDB.length} class(es)`, 'info');
-            } else {
-                showPermissionModal('No classes found. Make sure classes are created in the admin panel and try refreshing again.', 'error');
-            }
-        });
-    }
+    // Removed refresh classes button - classes auto-load on login
 
     if (startSessionBtn) {
         // Ensure button is enabled and clickable
@@ -1667,26 +1665,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             const headerY = height - 40;
             const leftMarginLogo = 50; // Left margin for logo and text alignment
             
+            let scaledLogo = null;
             if (logoImage) {
-                const logoDims = logoImage.scale(0.05); // Reduced to 5% of original size (even smaller)
-                const logoY = headerY - (logoDims.height / 2) + 9; // Align vertically with text (text is 18pt, so center logo with text)
+                scaledLogo = logoImage.scale(0.038); // Smaller logo to allow more header text
+                const logoY = headerY - (scaledLogo.height / 2) + 9; // Align vertically with text
                 
                 page.drawImage(logoImage, {
                     x: leftMarginLogo, // Left aligned
                     y: logoY,
-                    width: logoDims.width,
-                    height: logoDims.height,
+                    width: scaledLogo.width,
+                    height: scaledLogo.height,
                 });
             }
             
             // Draw header text aligned with logo (left side)
-            const textX = logoImage ? leftMarginLogo + logoImage.scale(0.05).width + 15 : leftMarginLogo; // Add spacing after logo
+            const textX = scaledLogo ? leftMarginLogo + scaledLogo.width + 15 : leftMarginLogo; // Add spacing after logo
             page.drawText('University of Southern Mindanao', {
                 x: textX,
                 y: headerY,
                 size: 18,
                 font: helveticaBold,
                 color: pdfLib.rgb(0, 0, 0),
+            });
+            page.drawText('Kabacan, North Cotabato', {
+                x: textX,
+                y: headerY - 16,
+                size: 12,
+                font: helvetica,
+                color: pdfLib.rgb(0.2, 0.2, 0.2),
             });
             
             const generatedAt = new Date().toLocaleString();
@@ -1814,12 +1820,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentY -= 25;
             const tableLeftMargin = leftMargin;
             const tableWidth = width - (tableLeftMargin * 2);
-            // Calculate column widths to fit within table (with some padding)
-            const totalColumnWidth = tableWidth - 10; // Leave 10 points for padding/margins
-            const col1Width = Math.floor(totalColumnWidth * 0.45); // Full Name - 45%
-            const col2Width = Math.floor(totalColumnWidth * 0.25); // Program - 25%
-            const col3Width = Math.floor(totalColumnWidth * 0.15); // Status - 15%
-            const col4Width = Math.floor(totalColumnWidth * 0.15); // Time - 15%
+            // Calculate column widths to exactly match the table width
+            const col1Width = Math.round(tableWidth * 0.45); // Full Name - 45%
+            const col2Width = Math.round(tableWidth * 0.25); // Program - 25%
+            const col3Width = Math.round(tableWidth * 0.15); // Status - 15%
+            const col4Width = tableWidth - (col1Width + col2Width + col3Width); // Time - remaining width
             
             // Draw table header background
             page.drawRectangle({
