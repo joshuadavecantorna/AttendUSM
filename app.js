@@ -940,7 +940,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const currentTime = new Date();
-        const lateThresholdMinutes = 15;
+        // Get late threshold from settings (default: 15 minutes)
+        const lateThresholdMinutes = parseInt(localStorage.getItem('lateThresholdMinutes')) || 15;
         const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
         const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
 
@@ -1195,7 +1196,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const currentTime = new Date();
-        const lateThresholdMinutes = 15;
+        // Get late threshold from settings (default: 15 minutes)
+        const lateThresholdMinutes = parseInt(localStorage.getItem('lateThresholdMinutes')) || 15;
         const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
         const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
 
@@ -1667,65 +1669,173 @@ document.addEventListener('DOMContentLoaded', async () => {
             const col4Width = tableWidth - (col1Width + col2Width + col3Width); // Time - remaining width
             const lineHeight = 15; // Reduced line height to fit more rows
             const headerHeight = 20;
-            const tableStartY = height - 280; // Start table lower to fit summary
-            const tableBottomY = 80; // Space for "Verified by" at bottom
+            const pdfHeaderHeight = 100; // Height of the new PDF header
+            const pdfFooterHeight = 80; // Height of the PDF footer
+            const tableStartY = height - pdfHeaderHeight - 200; // Start table lower to fit summary and new header
+            const tableBottomY = pdfFooterHeight + 20; // Space for footer and "Verified by" at bottom
             const maxRowsPerPage = Math.floor((tableStartY - tableBottomY - headerHeight) / lineHeight);
             
-            // Helper function to draw page header (logo and university name)
+            // Helper function to draw page header (matching official letterhead)
             const drawPageHeader = (page, isFirstPage) => {
-                const headerY = height - 40;
-                const leftMarginLogo = 50;
+                if (!isFirstPage) return; // Only draw header on first page
                 
-                if (logoImage && isFirstPage) {
-                    const scaledLogo = logoImage.scale(0.038);
-                    const logoY = headerY - (scaledLogo.height / 2) + 5;
+                const topMargin = 50;
+                const centerX = width / 2;
+                const marginLeft = 50;
+                const marginRight = 50;
+                
+                // Draw top horizontal line
+                page.drawLine({
+                    start: { x: marginLeft, y: height - topMargin },
+                    end: { x: width - marginRight, y: height - topMargin },
+                    thickness: 1.5,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                // Draw logo at the top left
+                if (logoImage) {
+                    const logoSize = 60;
+                    const logoX = 50;
+                    const logoY = height - topMargin - logoSize - 10;
                     
                     page.drawImage(logoImage, {
-                        x: leftMarginLogo,
+                        x: logoX,
                         y: logoY,
-                        width: scaledLogo.width,
-                        height: scaledLogo.height,
-                    });
-                    
-                    const textX = leftMarginLogo + scaledLogo.width + 15;
-                    page.drawText('University of Southern Mindanao', {
-                        x: textX,
-                        y: headerY,
-                        size: 18,
-                        font: helveticaBold,
-                        color: pdfLib.rgb(0, 0, 0),
-                    });
-                    page.drawText('Kabacan, North Cotabato', {
-                        x: textX,
-                        y: headerY - 16,
-                        size: 12,
-                        font: helvetica,
-                        color: pdfLib.rgb(0.2, 0.2, 0.2),
-                    });
-                } else if (isFirstPage) {
-                    // No logo, just text
-                    page.drawText('University of Southern Mindanao', {
-                        x: leftMarginLogo,
-                        y: headerY,
-                        size: 18,
-                        font: helveticaBold,
-                        color: pdfLib.rgb(0, 0, 0),
-                    });
-                    page.drawText('Kabacan, North Cotabato', {
-                        x: leftMarginLogo,
-                        y: headerY - 16,
-                        size: 12,
-                        font: helvetica,
-                        color: pdfLib.rgb(0.2, 0.2, 0.2),
+                        width: logoSize,
+                        height: logoSize,
                     });
                 }
+                
+                // Center text block
+                let currentY = height - topMargin - 20;
+                
+                // "UNIVERSITY OF SOUTHERN MINDANAO" - centered, bold
+                const usmText = 'UNIVERSITY OF SOUTHERN MINDANAO';
+                const usmWidth = helveticaBold.widthOfTextAtSize(usmText, 14);
+                page.drawText(usmText, {
+                    x: centerX - (usmWidth / 2),
+                    y: currentY,
+                    size: 14,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 16;
+                
+                // "Kabacan, Cotabato" - centered, regular
+                const locationText = 'Kabacan, Cotabato';
+                const locationWidth = helvetica.widthOfTextAtSize(locationText, 10);
+                page.drawText(locationText, {
+                    x: centerX - (locationWidth / 2),
+                    y: currentY,
+                    size: 10,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 14;
+                
+                // "Philippines" - centered, regular
+                const phText = 'Philippines';
+                const phWidth = helvetica.widthOfTextAtSize(phText, 10);
+                page.drawText(phText, {
+                    x: centerX - (phWidth / 2),
+                    y: currentY,
+                    size: 10,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 25;
+                
+                // "ATTENDANCE SHEET" - centered, bold
+                const sheetText = 'ATTENDANCE SHEET';
+                const sheetWidth = helveticaBold.widthOfTextAtSize(sheetText, 12);
+                page.drawText(sheetText, {
+                    x: centerX - (sheetWidth / 2),
+                    y: currentY,
+                    size: 12,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                // Draw bottom horizontal line below ATTENDANCE SHEET
+                const lineY = currentY - 8;
+                page.drawLine({
+                    start: { x: marginLeft, y: lineY },
+                    end: { x: width - marginRight, y: lineY },
+                    thickness: 1.5,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+            };
+            
+            // Helper function to draw page footer (motto and logo)
+            const drawPageFooter = (page) => {
+                const footerY = 50;
+                const leftMargin = 50;
+                const rightMargin = 50;
+                
+                // Draw thin gray line above footer
+                page.drawLine({
+                    start: { x: leftMargin, y: footerY + 25 },
+                    end: { x: width - rightMargin, y: footerY + 25 },
+                    thickness: 0.5,
+                    color: pdfLib.rgb(0.7, 0.7, 0.7),
+                });
+                
+                // Left side: Motto with highlighted words
+                const mottoText = 'UNITY IN DIVERSITY AND SUSTAINABLE DEVELOPMENT IN MINDANAO THROUGH QUALITY AND RELEVANT EDUCATION.';
+                const mottoX = leftMargin;
+                const mottoY = footerY;
+                const mottoSize = 8;
+                
+                // Split text into parts for highlighting
+                const parts = [
+                    { text: 'UNITY', highlight: true },
+                    { text: ' IN DIVERSITY AND ', highlight: false },
+                    { text: 'SUSTAINABLE', highlight: true },
+                    { text: ' DEVELOPMENT IN ', highlight: false },
+                    { text: 'MINDANAO', highlight: true },
+                    { text: ' THROUGH QUALITY AND RELEVANT EDUCATION.', highlight: false },
+                ];
+                
+                let currentX = mottoX;
+                parts.forEach(part => {
+                    const color = part.highlight ? pdfLib.rgb(0.4, 0.7, 0.4) : pdfLib.rgb(0, 0, 0);
+                    page.drawText(part.text, {
+                        x: currentX,
+                        y: mottoY,
+                        size: mottoSize,
+                        font: helvetica,
+                        color: color,
+                    });
+                    currentX += helvetica.widthOfTextAtSize(part.text, mottoSize);
+                });
+                
+                // Right side: Circular logo (will be pasted by user)
+                // TODO: Replace this section with the actual colorful circular logo image
+                // The logo should have blue, yellow, red, and green segments
+                const footerLogoSize = 40;
+                const footerLogoX = width - rightMargin - footerLogoSize;
+                const footerLogoY = footerY;
+                
+                // Placeholder for footer logo (user will paste actual logo)
+                // Example code to add your footer logo:
+                // const footerLogoImage = await pdfDoc.embedPng(footerLogoBytes);
+                // page.drawImage(footerLogoImage, {
+                //     x: footerLogoX,
+                //     y: footerLogoY,
+                //     width: footerLogoSize,
+                //     height: footerLogoSize,
+                // });
             };
             
             // Helper function to draw summary (only on first page)
             const drawSummary = (page) => {
-                let currentY = height - 100;
+                let currentY = height - pdfHeaderHeight - 50; // Start below the new header
                 const fontSize = 11;
                 
+                // Left side: Report info
                 page.drawText(`Attendance Report for ${className}`, {
                     x: leftMargin,
                     y: currentY,
@@ -1752,56 +1862,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                     color: pdfLib.rgb(0, 0, 0),
                 });
                 
-                currentY -= 30;
+                // Right side: Summary box
+                const summaryX = width - 200; // Position on the right side
+                let summaryY = height - pdfHeaderHeight - 50; // Align with the report title
+                
                 page.drawText('SUMMARY', {
-                    x: leftMargin,
-                    y: currentY,
+                    x: summaryX,
+                    y: summaryY,
                     size: 12,
                     font: helveticaBold,
                     color: pdfLib.rgb(0, 0, 0),
                 });
                 
-                currentY -= 18;
+                summaryY -= 18;
                 page.drawText(`Total Students: ${totalStudents}`, {
-                    x: leftMargin,
-                    y: currentY,
+                    x: summaryX,
+                    y: summaryY,
                     size: fontSize,
                     font: helvetica,
                     color: pdfLib.rgb(0, 0, 0),
                 });
                 
-                currentY -= 18;
+                summaryY -= 18;
                 page.drawText(`Present: ${presentStudents}`, {
-                    x: leftMargin,
-                    y: currentY,
+                    x: summaryX,
+                    y: summaryY,
                     size: fontSize,
                     font: helvetica,
                     color: pdfLib.rgb(0, 0, 0),
                 });
                 
-                currentY -= 18;
+                summaryY -= 18;
                 page.drawText(`Late: ${lateStudents}`, {
-                    x: leftMargin,
-                    y: currentY,
+                    x: summaryX,
+                    y: summaryY,
                     size: fontSize,
                     font: helvetica,
                     color: pdfLib.rgb(0, 0, 0),
                 });
                 
-                currentY -= 18;
+                summaryY -= 18;
                 page.drawText(`Absent: ${absentStudents}`, {
-                    x: leftMargin,
-                    y: currentY,
-                    size: fontSize,
-                    font: helvetica,
-                    color: pdfLib.rgb(0, 0, 0),
-                });
-                
-                currentY -= 18;
-                const attendanceRate = totalStudents > 0 ? Math.round((attendedStudents / totalStudents) * 100) : 0;
-                page.drawText(`Attendance Rate: ${attendanceRate}%`, {
-                    x: leftMargin,
-                    y: currentY,
+                    x: summaryX,
+                    y: summaryY,
                     size: fontSize,
                     font: helvetica,
                     color: pdfLib.rgb(0, 0, 0),
@@ -1906,7 +2009,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 
                 // Calculate table position
-                let tableY = isFirstPage ? tableStartY : height - 60;
+                let tableY = isFirstPage ? tableStartY : height - 60; // Non-first pages start lower due to header space
                 
                 // Draw "DETAILED ATTENDANCE" section title (only on first page, or if continuing)
                 if (isFirstPage) {
@@ -2014,16 +2117,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const hasLastRow = studentIndex >= sortedStudents.length;
                 drawTableBorders(page, tableY, rowsOnThisPage, hasLastRow);
                 
-                // Draw "Verified by:" only on last page
+                // Draw "Verified by:" only on last page (above footer)
                 if (studentIndex >= sortedStudents.length) {
                     page.drawText('Verified by: _________________________', {
                         x: tableLeftMargin,
-                        y: 60,
+                        y: pdfFooterHeight + 30,
                         size: 11,
                         font: helvetica,
                         color: pdfLib.rgb(0, 0, 0),
                     });
                 }
+                
+                // Draw footer on every page
+                drawPageFooter(page);
             }
             
             // Save the PDF

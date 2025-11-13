@@ -255,6 +255,39 @@
                     </div>
                 </div>
 
+                <!-- Settings Section -->
+                <div class="card" style="margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="margin: 0; color: var(--text);">System Settings</h3>
+                            <p style="margin: 0.25rem 0 0; color: var(--text-light); font-size: 0.9rem;">
+                                Configure attendance system parameters.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="late-threshold-input">
+                            <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Late Attendance Threshold (minutes)
+                        </label>
+                        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                            <input type="number" id="late-threshold-input" min="1" max="120" step="1" placeholder="15" style="max-width: 200px;" />
+                            <button id="save-settings-btn" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                                <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Save Settings
+                            </button>
+                        </div>
+                        <p style="margin: 0.5rem 0 0; color: var(--text-light); font-size: 0.85rem;">
+                            Students will be marked as "Late" if they scan their attendance after this many minutes from the class start time. Default: 15 minutes.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Info Banner -->
                 <div style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0.05)); border-left: 4px solid var(--primary); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
                     <svg style="width: 24px; height: 24px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">

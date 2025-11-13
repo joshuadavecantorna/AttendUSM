@@ -1013,6 +1013,39 @@
     `;
     document.head.appendChild(style);
 
+    // Settings: Late Threshold
+    const lateThresholdInput = document.getElementById('late-threshold-input');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+    // Load late threshold setting on page load
+    function loadLateThresholdSetting() {
+        const savedThreshold = localStorage.getItem('lateThresholdMinutes');
+        if (savedThreshold) {
+            lateThresholdInput.value = savedThreshold;
+        } else {
+            // Default to 15 minutes
+            lateThresholdInput.value = 15;
+        }
+    }
+
+    // Save late threshold setting
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+            const threshold = parseInt(lateThresholdInput.value);
+            
+            if (isNaN(threshold) || threshold < 1 || threshold > 120) {
+                showNotification('Please enter a valid number between 1 and 120 minutes.', 'error');
+                return;
+            }
+
+            localStorage.setItem('lateThresholdMinutes', threshold.toString());
+            showNotification(`Late threshold set to ${threshold} minutes. This will apply to all new attendance scans.`, 'success');
+        });
+    }
+
+    // Load settings when page loads
+    loadLateThresholdSetting();
+
     // Show notification on page load if there's existing data
     if (localStorage.getItem('loggedInUser')) {
         console.log('Admin panel loaded for user:', localStorage.getItem('loggedInUser'));
