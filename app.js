@@ -1671,7 +1671,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const headerHeight = 20;
             const pdfHeaderHeight = 100; // Height of the new PDF header
             const pdfFooterHeight = 80; // Height of the PDF footer
-            const tableStartY = height - pdfHeaderHeight - 200; // Start table lower to fit summary and new header
+            const tableStartY = height - pdfHeaderHeight - 170; // Reduced spacing before detailed attendance section
             const tableBottomY = pdfFooterHeight + 20; // Space for footer and "Verified by" at bottom
             const maxRowsPerPage = Math.floor((tableStartY - tableBottomY - headerHeight) / lineHeight);
             
@@ -1771,63 +1771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Helper function to draw page footer (motto and logo)
             const drawPageFooter = (page) => {
-                const footerY = 50;
-                const leftMargin = 50;
-                const rightMargin = 50;
-                
-                // Draw thin gray line above footer
-                page.drawLine({
-                    start: { x: leftMargin, y: footerY + 25 },
-                    end: { x: width - rightMargin, y: footerY + 25 },
-                    thickness: 0.5,
-                    color: pdfLib.rgb(0.7, 0.7, 0.7),
-                });
-                
-                // Left side: Motto with highlighted words
-                const mottoText = 'UNITY IN DIVERSITY AND SUSTAINABLE DEVELOPMENT IN MINDANAO THROUGH QUALITY AND RELEVANT EDUCATION.';
-                const mottoX = leftMargin;
-                const mottoY = footerY;
-                const mottoSize = 8;
-                
-                // Split text into parts for highlighting
-                const parts = [
-                    { text: 'UNITY', highlight: true },
-                    { text: ' IN DIVERSITY AND ', highlight: false },
-                    { text: 'SUSTAINABLE', highlight: true },
-                    { text: ' DEVELOPMENT IN ', highlight: false },
-                    { text: 'MINDANAO', highlight: true },
-                    { text: ' THROUGH QUALITY AND RELEVANT EDUCATION.', highlight: false },
-                ];
-                
-                let currentX = mottoX;
-                parts.forEach(part => {
-                    const color = part.highlight ? pdfLib.rgb(0.4, 0.7, 0.4) : pdfLib.rgb(0, 0, 0);
-                    page.drawText(part.text, {
-                        x: currentX,
-                        y: mottoY,
-                        size: mottoSize,
-                        font: helvetica,
-                        color: color,
-                    });
-                    currentX += helvetica.widthOfTextAtSize(part.text, mottoSize);
-                });
-                
-                // Right side: Circular logo (will be pasted by user)
-                // TODO: Replace this section with the actual colorful circular logo image
-                // The logo should have blue, yellow, red, and green segments
-                const footerLogoSize = 40;
-                const footerLogoX = width - rightMargin - footerLogoSize;
-                const footerLogoY = footerY;
-                
-                // Placeholder for footer logo (user will paste actual logo)
-                // Example code to add your footer logo:
-                // const footerLogoImage = await pdfDoc.embedPng(footerLogoBytes);
-                // page.drawImage(footerLogoImage, {
-                //     x: footerLogoX,
-                //     y: footerLogoY,
-                //     width: footerLogoSize,
-                //     height: footerLogoSize,
-                // });
+                // Footer function - currently empty, can add footer elements here if needed
             };
             
             // Helper function to draw summary (only on first page)
@@ -2117,11 +2061,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const hasLastRow = studentIndex >= sortedStudents.length;
                 drawTableBorders(page, tableY, rowsOnThisPage, hasLastRow);
                 
-                // Draw "Verified by:" only on last page (above footer)
+                // Draw "Verified by:" only on last page (at the bottom)
                 if (studentIndex >= sortedStudents.length) {
                     page.drawText('Verified by: _________________________', {
                         x: tableLeftMargin,
-                        y: pdfFooterHeight + 30,
+                        y: 30,
                         size: 11,
                         font: helvetica,
                         color: pdfLib.rgb(0, 0, 0),
