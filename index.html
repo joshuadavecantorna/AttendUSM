@@ -157,7 +157,7 @@
             </div>
 
             <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
-                <button id="logout-btn" class="btn btn-outline" style="display:flex;align-items:center;gap:0.5rem;padding:10px 18px;">
+                <button id="logout-btn" class="btn btn-outline hidden" style="display:flex;align-items:center;gap:0.5rem;padding:10px 18px;">
                     <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -261,7 +261,17 @@
 
             <!-- Attendance Capture -->
             <div class="card hidden" id="attendance-capture">
-                <h3 style="margin-top: 0;">Mark Attendance</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">Mark Attendance</h3>
+                    <button id="end-session-logout-btn" class="btn btn-outline" style="display:flex;align-items:center;gap:0.5rem;padding:8px 16px;">
+                        <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        End Session & Logout
+                    </button>
+                </div>
                 
                 <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
                     <button id="scan-qr-btn" class="btn btn-primary" style="flex: 1; min-width: 140px;">

@@ -1336,6 +1336,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopQrScanner();
     });
 
+    // End Session & Logout button (in attendance capture section)
+    const endSessionLogoutBtn = document.getElementById('end-session-logout-btn');
+    if (endSessionLogoutBtn) {
+        endSessionLogoutBtn.addEventListener('click', () => {
+            // Confirm before ending session and logging out
+            if (confirm('Are you sure you want to end this session and logout? All unsaved data will be lost.')) {
+                localStorage.removeItem('loggedInUser');
+                loggedInUser = null;
+                studentsDB = [];
+                classesDB = [];
+                currentClassId = null;
+                currentClassName = null;
+                classStartTime = null;
+                currentClassTimeStr = null;
+                currentSessionId = null;
+                attendanceDataForCurrentSession = [];
+                currentClassRoster = [];
+                updateClassSelectOptions();
+                refreshStudentListUI();
+                showAuthSection();
+                stopQrScanner();
+                closeNfcDialog(); // Close NFC dialog if open
+            }
+        });
+    }
+
     // Refresh classes button
     const refreshClassesBtn = document.getElementById('refresh-classes-btn');
     if (refreshClassesBtn) {
