@@ -1606,8 +1606,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const pdfDoc = await pdfLib.PDFDocument.create();
             
             // Page setup (A4 size)
-            const page = pdfDoc.addPage([595, 842]); // A4 dimensions in points
-            const { width, height } = page.getSize();
+            const width = 595; // A4 width in points
+            const height = 842; // A4 height in points
             
             // Get class information
             let className = currentClassName || 'Unassigned Class';
@@ -1616,21 +1616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 className = 'Quick Scan';
             }
             const classTime = currentClassTimeStr || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            const currentDate = new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            
-            // Get course/program from first student
-            let courseName = '';
-            const firstStudent = attendanceDataForCurrentSession[0];
-            if (firstStudent) {
-                const student = studentsDB.find(s => s.id === firstStudent.id);
-                if (student && student.program) {
-                    courseName = student.program;
-                }
-            }
+            const generatedAt = new Date().toLocaleString();
             
             // Load and embed the logo
             let logoImage = null;
@@ -1649,149 +1635,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const helveticaBold = await pdfDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
             const helvetica = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
             
-            // Center text helper
-            const centerText = (text, y, size, font) => {
-                const textWidth = font.widthOfTextAtSize(text, size);
-                page.drawText(text, {
-                    x: (width - textWidth) / 2,
-                    y: y,
-                    size: size,
-                    font: font,
-                    color: pdfLib.rgb(0, 0, 0),
-                });
-            };
-            
-            // Draw logo and header text aligned on the left
-            const headerY = height - 40;
-            const leftMarginLogo = 50; // Left margin for logo and text alignment
-            
-            let scaledLogo = null;
-            if (logoImage) {
-                scaledLogo = logoImage.scale(0.038); // Smaller logo to allow more header text
-                const logoY = headerY - (scaledLogo.height / 2) + 9; // Align vertically with text
-                
-                page.drawImage(logoImage, {
-                    x: leftMarginLogo, // Left aligned
-                    y: logoY,
-                    width: scaledLogo.width,
-                    height: scaledLogo.height,
-                });
-            }
-            
-            // Draw header text aligned with logo (left side)
-            const textX = scaledLogo ? leftMarginLogo + scaledLogo.width + 15 : leftMarginLogo; // Add spacing after logo
-            page.drawText('University of Southern Mindanao', {
-                x: textX,
-                y: headerY,
-                size: 18,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            page.drawText('Kabacan, North Cotabato', {
-                x: textX,
-                y: headerY - 16,
-                size: 12,
-                font: helvetica,
-                color: pdfLib.rgb(0.2, 0.2, 0.2),
-            });
-            
-            const generatedAt = new Date().toLocaleString();
+            // Calculate statistics
             const presentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Present').length;
             const lateStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Late').length;
             const absentStudents = attendanceDataForCurrentSession.filter(s => s.status === 'Absent').length;
             const totalStudents = attendanceDataForCurrentSession.length;
             const attendedStudents = presentStudents + lateStudents;
             
-            let currentY = headerY - 60; // Increased spacing from 30 to 60 to avoid overlap
-            const leftMargin = 50;
-            const fontSize = 11;
-            
-            // Attendance Report for [Class]
-            page.drawText(`Attendance Report for ${className}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // Class Time
-            currentY -= 18;
-            page.drawText(`Class Time: ${classTime}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // Report Generated
-            currentY -= 18;
-            page.drawText(`Report Generated: ${generatedAt}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // SUMMARY section
-            currentY -= 30;
-            page.drawText('SUMMARY', {
-                x: leftMargin,
-                y: currentY,
-                size: 12,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            currentY -= 18;
-            page.drawText(`Total Students: ${totalStudents}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            currentY -= 18;
-            page.drawText(`Present: ${presentStudents}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            currentY -= 18;
-            page.drawText(`Late: ${lateStudents}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            currentY -= 18;
-            page.drawText(`Absent: ${absentStudents}`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            currentY -= 18;
-            const attendanceRate = totalStudents > 0 ? Math.round((attendedStudents / totalStudents) * 100) : 0;
-            page.drawText(`Attendance Rate: ${attendanceRate}%`, {
-                x: leftMargin,
-                y: currentY,
-                size: fontSize,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // Sort students alphabetically and get detailed data first
+            // Sort students alphabetically and get detailed data
             const sortedStudents = [...attendanceDataForCurrentSession]
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map(sessionRecord => {
@@ -1806,173 +1657,365 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 });
             
-            // DETAILED ATTENDANCE section
-            currentY -= 30;
-            page.drawText('DETAILED ATTENDANCE', {
-                x: leftMargin,
-                y: currentY,
-                size: 12,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // Table setup (removed Student ID column)
-            currentY -= 25;
+            // Constants for layout
+            const leftMargin = 50;
             const tableLeftMargin = leftMargin;
             const tableWidth = width - (tableLeftMargin * 2);
-            // Calculate column widths to exactly match the table width
             const col1Width = Math.round(tableWidth * 0.45); // Full Name - 45%
             const col2Width = Math.round(tableWidth * 0.25); // Program - 25%
             const col3Width = Math.round(tableWidth * 0.15); // Status - 15%
             const col4Width = tableWidth - (col1Width + col2Width + col3Width); // Time - remaining width
+            const lineHeight = 12; // Reduced line height to fit more rows
+            const headerHeight = 20;
+            const tableStartY = height - 280; // Start table lower to fit summary
+            const tableBottomY = 80; // Space for "Verified by" at bottom
+            const maxRowsPerPage = Math.floor((tableStartY - tableBottomY - headerHeight) / lineHeight);
             
-            // Draw table header background
-            page.drawRectangle({
-                x: tableLeftMargin,
-                y: currentY - 20,
-                width: tableWidth,
-                height: 20,
-                color: pdfLib.rgb(0.9, 0.9, 0.9),
-            });
+            // Helper function to draw page header (logo and university name)
+            const drawPageHeader = (page, isFirstPage) => {
+                const headerY = height - 40;
+                const leftMarginLogo = 50;
+                
+                if (logoImage && isFirstPage) {
+                    const scaledLogo = logoImage.scale(0.038);
+                    const logoY = headerY - (scaledLogo.height / 2) + 9;
+                    
+                    page.drawImage(logoImage, {
+                        x: leftMarginLogo,
+                        y: logoY,
+                        width: scaledLogo.width,
+                        height: scaledLogo.height,
+                    });
+                    
+                    const textX = leftMarginLogo + scaledLogo.width + 15;
+                    page.drawText('University of Southern Mindanao', {
+                        x: textX,
+                        y: headerY,
+                        size: 18,
+                        font: helveticaBold,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    page.drawText('Kabacan, North Cotabato', {
+                        x: textX,
+                        y: headerY - 16,
+                        size: 12,
+                        font: helvetica,
+                        color: pdfLib.rgb(0.2, 0.2, 0.2),
+                    });
+                } else if (isFirstPage) {
+                    // No logo, just text
+                    page.drawText('University of Southern Mindanao', {
+                        x: leftMarginLogo,
+                        y: headerY,
+                        size: 18,
+                        font: helveticaBold,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    page.drawText('Kabacan, North Cotabato', {
+                        x: leftMarginLogo,
+                        y: headerY - 16,
+                        size: 12,
+                        font: helvetica,
+                        color: pdfLib.rgb(0.2, 0.2, 0.2),
+                    });
+                }
+            };
             
-            // Draw header text (removed Student ID)
-            page.drawText('Full Name', {
-                x: tableLeftMargin + 5,
-                y: currentY - 15,
-                size: 9,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            page.drawText('Program', {
-                x: tableLeftMargin + col1Width + 5,
-                y: currentY - 15,
-                size: 9,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            page.drawText('Status', {
-                x: tableLeftMargin + col1Width + col2Width + 5,
-                y: currentY - 15,
-                size: 9,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            page.drawText('Time', {
-                x: tableLeftMargin + col1Width + col2Width + col3Width + 5,
-                y: currentY - 15,
-                size: 9,
-                font: helveticaBold,
-                color: pdfLib.rgb(0, 0, 0),
-            });
+            // Helper function to draw summary (only on first page)
+            const drawSummary = (page) => {
+                let currentY = height - 100;
+                const fontSize = 11;
+                
+                page.drawText(`Attendance Report for ${className}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Class Time: ${classTime}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Report Generated: ${generatedAt}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 30;
+                page.drawText('SUMMARY', {
+                    x: leftMargin,
+                    y: currentY,
+                    size: 12,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Total Students: ${totalStudents}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Present: ${presentStudents}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Late: ${lateStudents}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                page.drawText(`Absent: ${absentStudents}`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                
+                currentY -= 18;
+                const attendanceRate = totalStudents > 0 ? Math.round((attendedStudents / totalStudents) * 100) : 0;
+                page.drawText(`Attendance Rate: ${attendanceRate}%`, {
+                    x: leftMargin,
+                    y: currentY,
+                    size: fontSize,
+                    font: helvetica,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+            };
             
-            // Draw table border
-            const tableHeight = Math.min(sortedStudents.length * 15 + 20, height - currentY - 100);
-            page.drawRectangle({
-                x: tableLeftMargin,
-                y: currentY - tableHeight,
-                width: tableWidth,
-                height: tableHeight,
-                borderColor: pdfLib.rgb(0, 0, 0),
-                borderWidth: 1,
-            });
+            // Helper function to draw table header
+            const drawTableHeader = (page, tableY) => {
+                // Draw table header background
+                page.drawRectangle({
+                    x: tableLeftMargin,
+                    y: tableY - headerHeight,
+                    width: tableWidth,
+                    height: headerHeight,
+                    color: pdfLib.rgb(0.9, 0.9, 0.9),
+                });
+                
+                // Draw header text
+                page.drawText('Full Name', {
+                    x: tableLeftMargin + 5,
+                    y: tableY - 15,
+                    size: 9,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                page.drawText('Program', {
+                    x: tableLeftMargin + col1Width + 5,
+                    y: tableY - 15,
+                    size: 9,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                page.drawText('Status', {
+                    x: tableLeftMargin + col1Width + col2Width + 5,
+                    y: tableY - 15,
+                    size: 9,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+                page.drawText('Time', {
+                    x: tableLeftMargin + col1Width + col2Width + col3Width + 5,
+                    y: tableY - 15,
+                    size: 9,
+                    font: helveticaBold,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+            };
             
-            // Draw vertical lines (separating all columns including Time)
-            let xPos = tableLeftMargin;
-            [col1Width, col2Width, col3Width, col4Width].forEach(colWidth => {
-                xPos += colWidth;
-                // Don't draw line at the very end (right edge of table)
-                if (xPos < tableLeftMargin + tableWidth - 1) {
-                    page.drawLine({
-                        start: { x: xPos, y: currentY },
-                        end: { x: xPos, y: currentY - tableHeight },
-                        thickness: 1,
+            // Helper function to draw table borders
+            const drawTableBorders = (page, tableY, numRows) => {
+                const tableHeight = numRows * lineHeight + headerHeight;
+                
+                // Draw outer border
+                page.drawRectangle({
+                    x: tableLeftMargin,
+                    y: tableY - tableHeight,
+                    width: tableWidth,
+                    height: tableHeight,
+                    borderColor: pdfLib.rgb(0, 0, 0),
+                    borderWidth: 1,
+                });
+                
+                // Draw vertical lines
+                let xPos = tableLeftMargin;
+                [col1Width, col2Width, col3Width, col4Width].forEach(colWidth => {
+                    xPos += colWidth;
+                    if (xPos < tableLeftMargin + tableWidth - 1) {
+                        page.drawLine({
+                            start: { x: xPos, y: tableY },
+                            end: { x: xPos, y: tableY - tableHeight },
+                            thickness: 1,
+                            color: pdfLib.rgb(0, 0, 0),
+                        });
+                    }
+                });
+                
+                // Draw horizontal line under header
+                page.drawLine({
+                    start: { x: tableLeftMargin, y: tableY - headerHeight },
+                    end: { x: tableLeftMargin + tableWidth, y: tableY - headerHeight },
+                    thickness: 1,
+                    color: pdfLib.rgb(0, 0, 0),
+                });
+            };
+            
+            // Pagination: split students across pages
+            let studentIndex = 0;
+            let pageNum = 0;
+            
+            while (studentIndex < sortedStudents.length) {
+                const page = pdfDoc.addPage([width, height]);
+                pageNum++;
+                const isFirstPage = pageNum === 1;
+                
+                // Draw page header
+                drawPageHeader(page, isFirstPage);
+                
+                // Draw summary only on first page
+                if (isFirstPage) {
+                    drawSummary(page);
+                }
+                
+                // Calculate table position
+                let tableY = isFirstPage ? tableStartY : height - 60;
+                
+                // Draw "DETAILED ATTENDANCE" section title (only on first page, or if continuing)
+                if (isFirstPage) {
+                    page.drawText('DETAILED ATTENDANCE', {
+                        x: leftMargin,
+                        y: tableY + 5,
+                        size: 12,
+                        font: helveticaBold,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                } else {
+                    // On subsequent pages, show continuation header
+                    page.drawText(`DETAILED ATTENDANCE (continued) - Page ${pageNum}`, {
+                        x: leftMargin,
+                        y: tableY + 5,
+                        size: 10,
+                        font: helveticaBold,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    tableY -= 15;
+                }
+                
+                // Draw table header
+                drawTableHeader(page, tableY);
+                
+                // Calculate how many rows fit on this page
+                const availableHeight = tableY - tableBottomY - headerHeight;
+                const rowsOnThisPage = Math.min(
+                    maxRowsPerPage,
+                    sortedStudents.length - studentIndex,
+                    Math.floor(availableHeight / lineHeight)
+                );
+                
+                // Draw student rows
+                let studentY = tableY - headerHeight - lineHeight;
+                for (let i = 0; i < rowsOnThisPage && studentIndex < sortedStudents.length; i++) {
+                    const student = sortedStudents[studentIndex];
+                    
+                    // Full Name
+                    page.drawText(student.name, {
+                        x: tableLeftMargin + 5,
+                        y: studentY,
+                        size: 8,
+                        font: helvetica,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    
+                    // Program
+                    const program = student.program.length > 18 ? student.program.substring(0, 15) + '...' : student.program;
+                    page.drawText(program || 'N/A', {
+                        x: tableLeftMargin + col1Width + 5,
+                        y: studentY,
+                        size: 8,
+                        font: helvetica,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    
+                    // Status
+                    const statusColor = student.status === 'Present' ? pdfLib.rgb(0, 0.6, 0) : 
+                                        student.status === 'Late' ? pdfLib.rgb(0.8, 0.5, 0) : 
+                                        pdfLib.rgb(0.8, 0, 0);
+                    page.drawText(student.status, {
+                        x: tableLeftMargin + col1Width + col2Width + 5,
+                        y: studentY,
+                        size: 8,
+                        font: helvetica,
+                        color: statusColor,
+                    });
+                    
+                    // Time
+                    const timeOnly = new Date(student.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    page.drawText(timeOnly, {
+                        x: tableLeftMargin + col1Width + col2Width + col3Width + 5,
+                        y: studentY,
+                        size: 8,
+                        font: helvetica,
+                        color: pdfLib.rgb(0, 0, 0),
+                    });
+                    
+                    // Draw horizontal line between rows
+                    if (i < rowsOnThisPage - 1) {
+                        page.drawLine({
+                            start: { x: tableLeftMargin, y: studentY - 6 },
+                            end: { x: tableLeftMargin + tableWidth, y: studentY - 6 },
+                            thickness: 0.5,
+                            color: pdfLib.rgb(0.7, 0.7, 0.7),
+                        });
+                    }
+                    
+                    studentY -= lineHeight;
+                    studentIndex++;
+                }
+                
+                // Draw table borders
+                drawTableBorders(page, tableY, rowsOnThisPage);
+                
+                // Draw "Verified by:" only on last page
+                if (studentIndex >= sortedStudents.length) {
+                    page.drawText('Verified by: _________________________', {
+                        x: tableLeftMargin,
+                        y: 60,
+                        size: 11,
+                        font: helvetica,
                         color: pdfLib.rgb(0, 0, 0),
                     });
                 }
-            });
-            
-            // Draw horizontal line under header
-            page.drawLine({
-                start: { x: tableLeftMargin, y: currentY - 20 },
-                end: { x: tableLeftMargin + tableWidth, y: currentY - 20 },
-                thickness: 1,
-                color: pdfLib.rgb(0, 0, 0),
-            });
-            
-            // Draw student list
-            let studentY = currentY - 35;
-            const lineHeight = 15;
-            const maxStudentsPerPage = Math.floor((currentY - 100) / lineHeight);
-            
-            sortedStudents.slice(0, maxStudentsPerPage).forEach((student, index) => {
-                // Full Name (no truncation - show complete name)
-                page.drawText(student.name, {
-                    x: tableLeftMargin + 5,
-                    y: studentY,
-                    size: 8,
-                    font: helvetica,
-                    color: pdfLib.rgb(0, 0, 0),
-                });
-                
-                // Program
-                const program = student.program.length > 18 ? student.program.substring(0, 15) + '...' : student.program;
-                page.drawText(program || 'N/A', {
-                    x: tableLeftMargin + col1Width + 5,
-                    y: studentY,
-                    size: 8,
-                    font: helvetica,
-                    color: pdfLib.rgb(0, 0, 0),
-                });
-                
-                // Status
-                const statusColor = student.status === 'Present' ? pdfLib.rgb(0, 0.6, 0) : 
-                                    student.status === 'Late' ? pdfLib.rgb(0.8, 0.5, 0) : 
-                                    pdfLib.rgb(0.8, 0, 0);
-                page.drawText(student.status, {
-                    x: tableLeftMargin + col1Width + col2Width + 5,
-                    y: studentY,
-                    size: 8,
-                    font: helvetica,
-                    color: statusColor,
-                });
-                
-                // Time only (no date) - ensure it fits in the column
-                const timeOnly = new Date(student.timestamp).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                // Calculate position within the time column (with padding)
-                const timeX = tableLeftMargin + col1Width + col2Width + col3Width + 5;
-                page.drawText(timeOnly, {
-                    x: timeX,
-                    y: studentY,
-                    size: 8,
-                    font: helvetica,
-                    color: pdfLib.rgb(0, 0, 0),
-                });
-                
-                // Draw horizontal line
-                if (index < sortedStudents.length - 1 && index < maxStudentsPerPage - 1) {
-                    page.drawLine({
-                        start: { x: tableLeftMargin, y: studentY - 5 },
-                        end: { x: tableLeftMargin + tableWidth, y: studentY - 5 },
-                        thickness: 0.5,
-                        color: pdfLib.rgb(0.7, 0.7, 0.7),
-                    });
-                }
-                
-                studentY -= lineHeight;
-            });
-            
-            // Draw "Verified by:" at the bottom
-            const verifiedY = 60;
-            page.drawText('Verified by: _________________________', {
-                x: tableLeftMargin,
-                y: verifiedY,
-                size: 11,
-                font: helvetica,
-                color: pdfLib.rgb(0, 0, 0),
-            });
+            }
             
             // Save the PDF
             const pdfBytes = await pdfDoc.save();
