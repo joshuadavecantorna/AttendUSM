@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 id: studentId,
                 name: studentName,
                 program: studentCourse,
-                owner: loggedInUser,
+                owner: loggedInUser || 'admin@gmail.com', // Default to admin if no user logged in
                 classId: null,
                 className: null,
                 presentCount: 0,
@@ -822,15 +822,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Keep student profile in sync with the latest registration info
             student.name = studentName;
             student.program = studentCourse;
-            student.owner = loggedInUser;
+            // Preserve owner if exists, otherwise set to current user or admin
+            if (!student.owner) {
+                student.owner = loggedInUser || 'admin@gmail.com';
+            }
             if (typeof student.absentCount !== 'number') student.absentCount = 0;
         }
 
-        if (loggedInUser) {
-            await saveStudentsDB();
-        } else {
-            console.warn('NFC registration completed without a logged-in user; student record not persisted.');
-        }
+        // Always save student to database (registration)
+        await saveStudentsDB();
 
         showScanSuccessAnimation(studentName, 'NFC Tag Registered');
         return true;
@@ -864,29 +864,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // NFC tag is registered - check if session is active
-        if (!currentSessionId) {
-            showNfcWarning(studentData.name, 'NFC tag registered. Please start a session to mark attendance.');
-            return;
-        }
-        
         const studentId = studentData.studentId;
 
-        const currentTime = new Date();
-        const lateThresholdMinutes = 15;
-        const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
-        const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
-
+        // Always register/update student in database, even without active session
         let student = studentsDB.find(s => s.id === studentId);
+        const isNewStudent = !student;
 
         if (!student) {
             student = {
                 id: studentId,
                 name: studentData.name,
                 program: studentData.course || '',
-                owner: loggedInUser,
-                classId: currentClassId,
-                className: currentClassName,
+                owner: loggedInUser || 'admin@gmail.com', // Default to admin if no user logged in
+                classId: currentClassId || null,
+                className: currentClassName || null,
                 presentCount: 0,
                 lateCount: 0,
                 absentCount: 0,
@@ -894,13 +885,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             studentsDB.push(student);
         } else {
+            // Update existing student info
             student.name = studentData.name;
             student.program = studentData.course || student.program;
-            student.owner = loggedInUser;
-            student.classId = currentClassId;
-            student.className = currentClassName;
+            // Preserve owner if exists, otherwise set to current user or admin
+            if (!student.owner) {
+                student.owner = loggedInUser || 'admin@gmail.com';
+            }
+            // Update class info if session is active
+            if (currentClassId) {
+                student.classId = currentClassId;
+                student.className = currentClassName;
+            }
             if (typeof student.absentCount !== 'number') student.absentCount = 0;
         }
+
+        // Save student to database immediately (registration)
+        await saveStudentsDB();
+
+        // If no active session, just register the student
+        if (!currentSessionId) {
+            showNfcSuccess(student.name, isNewStudent ? 'Registered' : 'Updated');
+            return;
+        }
+
+        const currentTime = new Date();
+        const lateThresholdMinutes = 15;
+        const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
+        const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
 
         const sessionEntry = attendanceDataForCurrentSession.find(rec => rec.id === studentId);
 
@@ -1098,16 +1110,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Regular QR attendance processing
+        // Generate unique ID from name
+        const id = studentName.replace(/\s+/g, '_').toUpperCase();
+
+        // Always register/update student in database, even without active session
+        let student = studentsDB.find(s => s.id === id);
+        const isNewStudent = !student;
+
+        if (!student) {
+            student = {
+                id,
+                name: studentName,
+                program: studentCourse,
+                owner: loggedInUser || 'admin@gmail.com', // Default to admin if no user logged in
+                classId: currentClassId || null,
+                className: currentClassName || null,
+                presentCount: 0,
+                lateCount: 0,
+                absentCount: 0,
+                attendanceHistory: []
+            };
+            studentsDB.push(student);
+        } else {
+            // Update existing student info
+            student.name = studentName;
+            student.program = studentCourse || student.program;
+            // Preserve owner if exists, otherwise set to current user or admin
+            if (!student.owner) {
+                student.owner = loggedInUser || 'admin@gmail.com';
+            }
+            // Update class info if session is active
+            if (currentClassId) {
+                student.classId = currentClassId;
+                student.className = currentClassName;
+            }
+            if (typeof student.absentCount !== 'number') student.absentCount = 0;
+        }
+
+        // Save student to database immediately (registration)
+        await saveStudentsDB();
+
+        // If no active session, just register the student
         if (!currentSessionId) {
-            showPermissionModal('Session not started. Please select a class and start the session.', 'error');
+            showScanSuccessAnimation(student.name, isNewStudent ? 'Registered' : 'Updated');
             return;
         }
         
         console.log('📋 Current Session:', currentSessionId, '| Class:', currentClassName);
-
-        // Generate unique ID from name
-        const id = studentName.replace(/\s+/g, '_').toUpperCase();
 
         const sessionEntry = attendanceDataForCurrentSession.find(rec => rec.id === id);
         if (sessionEntry && (sessionEntry.status === 'Present' || sessionEntry.status === 'Late')) {
@@ -1119,31 +1168,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lateThresholdMinutes = 15;
         const lateTime = new Date(classStartTime.getTime() + lateThresholdMinutes * 60 * 1000);
         const determinedStatus = currentTime > lateTime ? 'Late' : 'Present';
-
-        let student = studentsDB.find(s => s.id === id);
-
-        if (!student) {
-            student = {
-                id,
-                name: studentName,
-                program: studentCourse,
-                owner: loggedInUser,
-                classId: currentClassId,
-                className: currentClassName,
-                presentCount: 0,
-                lateCount: 0,
-                absentCount: 0,
-                attendanceHistory: []
-            };
-            studentsDB.push(student);
-        } else {
-            student.name = studentName;
-            student.program = studentCourse || student.program;
-            student.owner = loggedInUser;
-            student.classId = currentClassId;
-            student.className = currentClassName;
-            if (typeof student.absentCount !== 'number') student.absentCount = 0;
-        }
 
         upsertAttendanceRecord(student, determinedStatus);
 
@@ -1419,10 +1443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     scanQrBtn.addEventListener('click', () => {
-        if (!currentSessionId) {
-            alert('Please start a session first before scanning.');
-            return;
-        }
+        // Allow scanning even without session for student registration
         if (qrScanningActive) {
             stopQrScanner();
             return;
