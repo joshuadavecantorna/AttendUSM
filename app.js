@@ -890,7 +890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `;
                     startQrScanner();
                 }
-            }, 3000); // Wait 3 seconds for user to read the message
+            }, 1000); // Wait 1 second for user to read the message
             return;
         }
         
@@ -1034,12 +1034,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('nfc-error-text').textContent = message;
         document.getElementById('nfc-error-message').style.display = 'block';
         
-        // Return to scanning after 3 seconds
+        // Return to scanning after 1 second
         setTimeout(() => {
             if (isNfcScanning) {
                 showNfcScanning();
             }
-        }, 3000);
+        }, 1000);
     }
 
     function showNfcWarning(name, message) {
@@ -1267,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             overlay.classList.add('shake');
         }, 400);
         
-        // Hide after animation
+        // Hide after animation - reduced from 2000ms to 1200ms for faster response
         setTimeout(() => {
             overlay.classList.remove('show', 'shake');
             overlay.classList.add('hide');
@@ -1276,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 overlay.style.display = 'none';
                 overlay.classList.remove('hide');
             }, 300);
-        }, 2000);
+        }, 1200);
     }
 
     function showScanWarningAnimation(studentName, message) {

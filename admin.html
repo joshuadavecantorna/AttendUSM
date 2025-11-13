@@ -189,7 +189,7 @@
                     </div>
                     <div class="form-group">
                         <label for="class-name-input">Class Name</label>
-                        <input type="text" id="class-name-input" placeholder="e.g., 3-BSCS-A" style="max-width: 400px;" />
+                        <input type="text" id="class-name-input" placeholder="e.g., 3-BSCS-A" style="max-width: 400px; box-sizing: border-box; text-overflow: ellipsis;" />
                     </div>
                     <div style="margin-top: 1.5rem;">
                         <h4 style="margin: 0 0 1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
@@ -274,7 +274,7 @@
                             Late Attendance Threshold (minutes)
                         </label>
                         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                            <input type="number" id="late-threshold-input" min="1" max="120" step="1" placeholder="15" style="max-width: 200px;" />
+                            <input type="number" id="late-threshold-input" min="1" max="120" step="1" placeholder="15" style="max-width: 200px; box-sizing: border-box; text-overflow: ellipsis;" />
                             <button id="save-settings-btn" class="btn btn-primary" style="padding: 0.5rem 1rem;">
                                 <svg style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -310,7 +310,7 @@
                             All Students (<span id="student-count">0</span>)
                         </h3>
                         <div class="admin-search-controls">
-                            <input type="text" id="search-student" placeholder="Search student name or course..." style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                            <input type="text" id="search-student" placeholder="Search student name or course..." style="padding: 0.5rem 1rem; font-size: 0.9rem; box-sizing: border-box; text-overflow: ellipsis;">
                             <button id="refresh-list-btn" class="btn btn-outline" style="padding: 0.5rem 1rem;">
                                 <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -360,11 +360,11 @@
                 <h3 style="margin: 0 0 1.5rem; color: var(--primary);">Edit Student</h3>
                 <div class="form-group">
                     <label for="edit-student-name">Student Name</label>
-                    <input type="text" id="edit-student-name" placeholder="e.g., JUAN DELA CRUZ">
+                    <input type="text" id="edit-student-name" placeholder="e.g., JUAN DELA CRUZ" style="box-sizing: border-box; text-overflow: ellipsis;">
                 </div>
                 <div class="form-group">
                     <label for="edit-student-course">Course/Program</label>
-                    <input type="text" id="edit-student-course" placeholder="e.g., BSIT, BSCS, BSED">
+                    <input type="text" id="edit-student-course" placeholder="e.g., BSIT, BSCS, BSED" style="box-sizing: border-box; text-overflow: ellipsis;">
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button id="save-edit-btn" class="btn btn-primary" style="flex: 1;">
@@ -386,7 +386,7 @@
                     <button id="close-student-selector" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
                 </div>
                 <div style="margin-bottom: 1rem;">
-                    <input type="text" id="student-search-input" placeholder="Search by name, ID, or program..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem;">
+                    <input type="text" id="student-search-input" placeholder="Search by name, ID, or program..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; text-overflow: ellipsis;">
                 </div>
                 <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; max-height: 400px;">
                     <table style="width: 100%; border-collapse: collapse;">
