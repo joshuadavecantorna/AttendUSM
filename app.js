@@ -1851,8 +1851,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             
             // Helper function to draw table borders
-            const drawTableBorders = (page, tableY, numRows) => {
-                const tableHeight = numRows * lineHeight + headerHeight;
+            const drawTableBorders = (page, tableY, numRows, hasExtraLastRow = false) => {
+                const lastRowExtra = hasExtraLastRow ? 3 : 0; // Extra height for last row
+                const tableHeight = (numRows - 1) * lineHeight + (lineHeight + lastRowExtra) + headerHeight;
                 
                 // Draw outer border
                 page.drawRectangle({
@@ -1941,8 +1942,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Draw student rows
                 let studentY = tableY - headerHeight - lineHeight;
+                const isLastPage = studentIndex + rowsOnThisPage >= sortedStudents.length;
+                
                 for (let i = 0; i < rowsOnThisPage && studentIndex < sortedStudents.length; i++) {
                     const student = sortedStudents[studentIndex];
+                    // Check if this is the absolute last row in the entire table
+                    const isLastRow = (studentIndex === sortedStudents.length - 1);
+                    const currentRowHeight = isLastRow ? lineHeight + 3 : lineHeight; // Extra space for last row
                     
                     // Full Name
                     page.drawText(student.name, {
@@ -1988,8 +1994,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         color: pdfLib.rgb(0, 0, 0),
                     });
                     
-                    // Draw horizontal line between rows
-                    if (i < rowsOnThisPage - 1) {
+                    // Draw horizontal line between rows (not after last row)
+                    if (!isLastRow) {
                         page.drawLine({
                             start: { x: tableLeftMargin, y: studentY - 6 },
                             end: { x: tableLeftMargin + tableWidth, y: studentY - 6 },
@@ -1998,12 +2004,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     }
                     
-                    studentY -= lineHeight;
+                    studentY -= currentRowHeight;
                     studentIndex++;
                 }
                 
-                // Draw table borders
-                drawTableBorders(page, tableY, rowsOnThisPage);
+                // Draw table borders (with extra space for last row if it's on this page)
+                // After the loop, studentIndex points to the next student to draw
+                // If studentIndex >= sortedStudents.length, we've drawn all students including the last one
+                const hasLastRow = studentIndex >= sortedStudents.length;
+                drawTableBorders(page, tableY, rowsOnThisPage, hasLastRow);
                 
                 // Draw "Verified by:" only on last page
                 if (studentIndex >= sortedStudents.length) {
