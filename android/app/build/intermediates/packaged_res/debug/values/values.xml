@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="primary">#4361EE</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">AttendUSM</string>
+    <style name="Theme.AttendUSM" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#4361EE</item>
+        <item name="colorPrimaryVariant">#3A56D4</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#7209B7</item>
+        <item name="colorSecondaryVariant">#5A0896</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>

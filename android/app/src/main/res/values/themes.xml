@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AttendUSM" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#4361EE</item>
+        <item name="colorPrimaryVariant">#3A56D4</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#7209B7</item>
+        <item name="colorSecondaryVariant">#5A0896</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>

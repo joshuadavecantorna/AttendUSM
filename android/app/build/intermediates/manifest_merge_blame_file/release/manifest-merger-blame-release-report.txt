@@ -1,0 +1,200 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.usm.attendance"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- Internet permission for loading web content -->
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:6:5-67
+12-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:6:22-64
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+13-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:7:5-79
+13-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:7:22-76
+14
+15    <!-- Camera permission for QR code scanning -->
+16    <uses-permission android:name="android.permission.CAMERA" />
+16-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:10:5-65
+16-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:10:22-62
+17
+18    <uses-feature
+18-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:11:5-85
+19        android:name="android.hardware.camera"
+19-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:11:19-57
+20        android:required="false" />
+20-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:11:58-82
+21    <uses-feature
+21-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:12:5-95
+22        android:name="android.hardware.camera.autofocus"
+22-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:12:19-67
+23        android:required="false" />
+23-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:12:68-92
+24
+25    <!-- NFC permission for NFC scanning -->
+26    <uses-permission android:name="android.permission.NFC" />
+26-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:15:5-62
+26-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:15:22-59
+27
+28    <uses-feature
+28-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:16:5-81
+29        android:name="android.hardware.nfc"
+29-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:16:19-54
+30        android:required="true" />
+30-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:16:55-78
+31
+32    <!-- Storage permission for file downloads -->
+33    <uses-permission
+33-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:19:5-20:38
+34        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+34-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:19:22-78
+35        android:maxSdkVersion="28" />
+35-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:20:9-35
+36    <uses-permission
+36-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:21:5-22:38
+37        android:name="android.permission.READ_EXTERNAL_STORAGE"
+37-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:21:22-77
+38        android:maxSdkVersion="32" />
+38-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:22:9-35
+39
+40    <permission
+40-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+41        android:name="com.usm.attendance.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+41-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+42        android:protectionLevel="signature" />
+42-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+43
+44    <uses-permission android:name="com.usm.attendance.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+44-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+44-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+45
+46    <application
+46-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:24:5-52:19
+47        android:allowBackup="true"
+47-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:25:9-35
+48        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+48-->[androidx.core:core:1.12.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\073b30953a677e2a926c0f17065fa4c3\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+49        android:extractNativeLibs="false"
+50        android:icon="@mipmap/ic_launcher"
+50-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:26:9-43
+51        android:label="@string/app_name"
+51-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:28:9-41
+52        android:roundIcon="@mipmap/ic_launcher_round"
+52-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:27:9-54
+53        android:supportsRtl="true"
+53-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:29:9-35
+54        android:theme="@style/Theme.AttendUSM"
+54-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:30:9-47
+55        android:usesCleartextTraffic="true" >
+55-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:31:9-44
+56        <activity
+56-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:34:9-51:20
+57            android:name="com.usm.attendance.MainActivity"
+57-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:35:13-41
+58            android:configChanges="orientation|screenSize|keyboardHidden"
+58-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:37:13-74
+59            android:exported="true"
+59-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:36:13-36
+60            android:screenOrientation="portrait" >
+60-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:38:13-49
+61            <intent-filter>
+61-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:39:13-42:29
+62                <action android:name="android.intent.action.MAIN" />
+62-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:40:17-69
+62-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:40:25-66
+63
+64                <category android:name="android.intent.category.LAUNCHER" />
+64-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:41:17-77
+64-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:41:27-74
+65            </intent-filter>
+66
+67            <!-- NFC intent filter -->
+68            <intent-filter>
+68-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:45:13-50:29
+69                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+69-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:46:17-77
+69-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:46:25-74
+70                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+70-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:47:17-76
+70-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:47:25-73
+71                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+71-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:48:17-77
+71-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:48:25-74
+72
+73                <category android:name="android.intent.category.DEFAULT" />
+73-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:49:17-76
+73-->F:\AttendUSM\android\app\src\main\AndroidManifest.xml:49:27-73
+74            </intent-filter>
+75        </activity>
+76
+77        <provider
+77-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+78            android:name="androidx.startup.InitializationProvider"
+78-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+79            android:authorities="com.usm.attendance.androidx-startup"
+79-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+80            android:exported="false" >
+80-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+81            <meta-data
+81-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+82                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+82-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+83                android:value="androidx.startup" />
+83-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f94272bad156f86ff26e124ccf6ddba0\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+84            <meta-data
+84-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f27b7760ce9f8c6a5f8bb672bdc512e4\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+85                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+85-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f27b7760ce9f8c6a5f8bb672bdc512e4\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+86                android:value="androidx.startup" />
+86-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\f27b7760ce9f8c6a5f8bb672bdc512e4\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+87            <meta-data
+87-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+88                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+88-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+89                android:value="androidx.startup" />
+89-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+90        </provider>
+91
+92        <receiver
+92-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+93            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+93-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+94            android:directBootAware="false"
+94-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+95            android:enabled="true"
+95-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+96            android:exported="true"
+96-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+97            android:permission="android.permission.DUMP" >
+97-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+98            <intent-filter>
+98-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+99                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+99-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+99-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+100            </intent-filter>
+101            <intent-filter>
+101-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+102                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+102-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+102-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+103            </intent-filter>
+104            <intent-filter>
+104-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+105                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+105-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+105-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+106            </intent-filter>
+107            <intent-filter>
+107-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+108                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+108-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+108-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Eddie Cantorna\.gradle\caches\transforms-3\cd64bbac7c030e887ef4d9ca16abf10a\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+109            </intent-filter>
+110        </receiver>
+111    </application>
+112
+113</manifest>

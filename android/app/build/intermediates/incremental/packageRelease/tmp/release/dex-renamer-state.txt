@@ -1,0 +1,4 @@
+#Sat Nov 15 21:52:10 PST 2025
+base.0=F\:\\AttendUSM\\android\\app\\build\\intermediates\\dex\\release\\mergeDexRelease\\classes.dex
+path.0=classes.dex
+renamed.0=classes.dex

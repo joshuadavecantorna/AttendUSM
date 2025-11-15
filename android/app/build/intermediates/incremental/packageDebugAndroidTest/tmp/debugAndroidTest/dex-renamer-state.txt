@@ -1,0 +1,4 @@
+#Sat Nov 15 21:24:08 PST 2025
+base.0=F\:\\AttendUSM\\android\\app\\build\\intermediates\\dex\\debugAndroidTest\\mergeProjectDexDebugAndroidTest\\0\\classes.dex
+path.0=0/classes.dex
+renamed.0=classes.dex
